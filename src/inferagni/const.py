@@ -1,3 +1,4 @@
+from __future__ import annotations
 
 unit_Rjup = 69.911e3 # m
 unit_Rear = 6.371e3  # m
