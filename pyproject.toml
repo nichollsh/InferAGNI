@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 # https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
 [project]
-name = "infer-agni"
+name = "inferAGNI"
 version = "26.02.12"
 description = "Planetary structure inference tool"
 readme = "README.md"
@@ -61,9 +61,10 @@ docs = [
 # [project.scripts]
 # proteus = "proteus.cli:cli"
 
-# [tool.setuptools]
-# package-dir = {"proteus" = "src/proteus" }
-# include-package-data = true
+[tool.setuptools]
+package-dir = {"inferAGNI" = "src/inferAgni" }
+include-package-data = true
+
 
 # [tool.coverage.run]
 # branch = true
