@@ -1,0 +1,98 @@
+[build-system]
+requires = ["setuptools>=61.2"]
+build-backend = "setuptools.build_meta"
+
+# https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
+[project]
+name = "infer-agni"
+version = "26.02.12"
+description = "Planetary structure inference tool"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+	{name = "Harrison Nicholls, email = harrison.nicholls@ast.cam.ac.uk"},
+]
+keywords = [
+    "Astronomy",
+    "Exoplanets",
+    "Model-coupling",
+]
+license = {text = "GPL v3"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Astronomy",
+]
+dependencies = [
+    "matplotlib",
+    "numpy",
+    "scipy",
+]
+
+[project.urls]
+homepage = "https://github.com/nichollsh/InferAGNI"
+issues = "https://github.com/FormingWorlds/InferAGNI/issues"
+documentation = "https://www.h-nicholls.space/AGNI/"
+changelog = "https://github.com/FormingWorlds/InferAGNI/releases"
+
+[project.optional-dependencies]
+develop = [
+    "coverage[toml]",
+    "pip-tools",
+    "pytest >= 8.1",
+    "pre-commit",
+    "ruff",
+]
+
+docs = [
+    "markdown-include",
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
+]
+
+# [project.scripts]
+# proteus = "proteus.cli:cli"
+
+# [tool.setuptools]
+# package-dir = {"proteus" = "src/proteus" }
+# include-package-data = true
+
+# [tool.coverage.run]
+# branch = true
+# source = ["proteus"]
+
+# [tool.pytest.ini_options]
+# testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 96
+target-version = "py312"
+extend-exclude = ["*ipynb"]
+
+[tool.ruff.lint]
+select = [
+	"F",  # Pyflakes
+	"E",  # pycodestyle (error)
+	"W",  # pycodestyle (warning)
+    "I",    # isort
+]
+ignore = [
+    "E501", # Line too long
+]
+
+# [tool.ruff.lint.isort]
+# known-first-party=["abassi"]
+# required-imports = ["from __future__ import annotations"]
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
+
