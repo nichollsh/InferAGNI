@@ -7,4 +7,4 @@ import inferagni.cli
 import inferagni.const
 import inferagni.plot
 
-__all__ = ["grid", "cli", "const", "plot"]
+__all__ = ['grid', 'cli', 'const', 'plot']
