@@ -6,11 +6,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "InferAGNI"
 version = "26.02.12"
-description = "Inferring planet properties using AGNI as a static structure model"
+description = "Infer planet properties using AGNI as a static structure model"
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
-    {name="Harrison Nicholls",       email="harrison.nicholls@physics.ox.ac.uk"},
+    {name="Harrison Nicholls",       email="harrison.nicholls@ast.cam.ac.uk"},
 ]
 keywords = [
     "Astronomy",
