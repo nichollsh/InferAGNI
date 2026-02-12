@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
@@ -9,6 +11,7 @@ from copy import deepcopy
 import numpy as np
 
 from .const import *
+from .grid import Grid
 
 # scale factor, log axis true/false, unit string, colormap
 units = {
@@ -114,13 +117,13 @@ left_align = ["T1","L98-59"]
 mass_ticks = [0.8, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 7, 8.0, 10.0]
 radius_ticks = [0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 6.0, 7.0]
 
-def plot_mr(data,
-            key1=None, key2=None,controls=None,
+def massrad_2d(gr:Grid,
+                key1=None, key2=None,controls=None,
                 show_scatter = False, show_isolines = True, show_controls = True,
                 echo_gridpoints = False,
                 vmr_min = 1e-4):
     # copy dataframe
-    subdata = deepcopy(data)
+    subdata = deepcopy(gr.data)
 
     # crop to successful runs (succ==1)
     subdata = subdata[subdata['succ'] > 0.0]
