@@ -3,8 +3,6 @@ from __future__ import annotations
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib.patches import Rectangle
 from cmcrameri import cm
 
 from copy import deepcopy
@@ -437,8 +435,8 @@ def massrad_2d(
     #         pl = pl.replace("Cnc A","Cnc")
     #         pl = pl.replace(" ","")
 
-    #         x = row["mass"] * unit_Mjup / unit_Mear
-    #         y = row["radius"] * unit_Rjup / unit_Rear
+    #         x = row["mass"] * M_jup / M_earth
+    #         y = row["radius"] * R_jup / R_earth
     #         if not (xlim[0] < x < xlim[1]) or not (ylim[0] < y < ylim[1]):
     #             continue
 
