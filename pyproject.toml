@@ -10,7 +10,7 @@ description = "Infer planet properties using AGNI as a static structure model"
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [
-    {name="Harrison Nicholls",       email="harrison.nicholls@ast.cam.ac.uk"},
+    {name="Harrison Nicholls",    email="harrison.nicholls@ast.cam.ac.uk"},
 ]
 keywords = [
     "Astronomy",
@@ -38,6 +38,7 @@ dependencies = [
     "pre-commit",
     "platformdirs",
     "ruff",
+    "click",
 ]
 
 [project.urls]
