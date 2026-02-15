@@ -5,7 +5,7 @@ import os
 import numpy as np
 from copy import deepcopy
 
-from .const import units
+from .util import varprops
 
 
 class Grid:
@@ -153,11 +153,11 @@ class Grid:
         # Flatten data
         points = np.array(
             [
-                subdata['mass_tot'].values * units['mass_tot'][0],
-                subdata['r_phot'].values * units['r_phot'][0],
+                subdata['mass_tot'].values * varprops['mass_tot'].scale,
+                subdata['r_phot'].values * varprops['r_phot'].scale,
             ]
         ).T
-        values = np.array(subdata[zkey].values * units[zkey][0])
+        values = np.array(subdata[zkey].values * varprops[zkey].scale)
 
         # Get range on x,y keys
         x_min, x_max = np.min(points[:, 0]), np.max(points[:, 0])
