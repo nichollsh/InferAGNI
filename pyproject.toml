@@ -39,6 +39,8 @@ dependencies = [
     "platformdirs",
     "ruff",
     "click",
+    "emcee",
+    "corner"
 ]
 
 [project.urls]
@@ -54,7 +56,6 @@ develop = [
     "tomlkit>=0.11.0",
     "pytest >= 8.1",
     "pytest-cov",
-    "pytest-dependency",
     "pytest-timeout",
     "ruff",
     "pre-commit"
