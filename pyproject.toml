@@ -75,9 +75,6 @@ inferagni = "inferagni.cli:cli"
 package-dir = {"inferagni" = "src/inferagni"}
 include-package-data = true
 
-# [tool.setuptools.package-data]
-# proteus = ["juliapkg.json"]
-
 [tool.coverage.run]
 branch = true
 source = ["inferagni"]
@@ -150,7 +147,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party=["proteus"]
+known-first-party=["inferagni"]
 required-imports = ["from __future__ import annotations"]
 
 [tool.ruff.format]
