@@ -50,14 +50,14 @@ changelog = "https://github.com/nichollsh/InferAGNI/releases"
 
 [project.optional-dependencies]
 develop = [
-    "coverage[toml]",
+    "coverage",
     "tomlkit>=0.11.0",
-    "pillow",
-    "pip-tools",
     "pytest >= 8.1",
     "pytest-cov",
     "pytest-dependency",
     "pytest-timeout",
+    "ruff",
+    "pre-commit"
 ]
 
 docs = [

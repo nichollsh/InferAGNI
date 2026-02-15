@@ -1,4 +1,4 @@
-name: Tests for CALLIOPE
+name: Tests
 
 on:
   push:
@@ -40,7 +40,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install -e .
+          python -m pip install -e '.[develop]'
 
       - name: Test with pytest
         run: |
