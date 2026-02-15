@@ -5,7 +5,7 @@ import os
 import numpy as np
 from copy import deepcopy
 
-from .util import varprops
+from .util import varprops, undimen, redimen
 
 
 class Grid:
@@ -23,8 +23,10 @@ class Grid:
         # emission data
         self.emits = None  # TODO
 
-        # interpolator
-        self.interp = None  # Instantiated later
+        # interpolator for whole grid
+        self._interp_dtype = np.float16
+        self._interp_method = "linear"    # “linear”, “nearest”,   spline methods: “slinear”, “cubic”, “quintic” and “pchip”.
+        self._interp = None  # Instantiated later
 
     def _load_from_dir(self, data_dir):
         """Load grid data from CSV files in the specified directory.
@@ -99,21 +101,23 @@ class Grid:
         return points
 
 
-    def interpolate_2d(self, zkey=None, controls=None, resolution=100, method='linear'):
-        """Interpolate a 2D grid of z-values as a function of mass and radius.
+    def interp_2d(self, zkey=None, controls=None, resolution=100, method='linear'):
+        """Interpolate a 2D grid of radii as a function of mass and `zkey`.
+
+        Must provide control variables in order to define the 2-D slice through N-D space.
 
         Parameters
         -----------
-        - zkey : str The name of the variable to interpolate
-        - controls : dict A dictionary of control variables to filter the data by.
-        - resolution : int The number of points to interpolate along each axis (mass and radius).
-        - method : str The interpolation method to use. Options are 'linear', 'nearest', and 'cubic'.
+        - zkey : str, The name of the variable to interpolate
+        - controls : dict, A dictionary of control variables to filter the data by.
+        - resolution : int, The number of points to interpolate along each axis (mass and radius).
+        - method : str, The interpolation method to use. Options are 'linear', 'nearest', and 'cubic'.
 
         Returns
         -----------
-        - itp_x : 2D array The x-coordinates of the interpolated grid (mass).
-        - itp_y : 2D array The y-coordinates of the interpolated grid (radius).
-        - itp_z : 2D array The interpolated z-values on the grid (the variable specified by zkey).
+        - itp_x : 2D array, The x-coordinates of the interpolated grid (mass).
+        - itp_y : 2D array, The y-coordinates of the interpolated grid (radius).
+        - itp_z : 2D array, The interpolated z-values on the grid (the variable specified by zkey).
         """
 
         from scipy.interpolate import griddata
@@ -179,18 +183,71 @@ class Grid:
         return itp_x, itp_y, itp_z
 
     def interp_init(self, vkey: str = 'r_phot'):
-        """Instantiate an interpolator on the grid data.
+        """Instantiate a regular interpolator on the whole grid's data.
 
         Parameters
         -----------
-        - vkey : str The name of the variable to interpolate (e.g. "r_phot").
+        - vkey : str, The name of the variable to interpolate (e.g. "r_phot").
         """
 
-        from scipy.interpolate import LinearNDInterpolator
+        from scipy.interpolate import RegularGridInterpolator
 
         # gather data
-        xyz = np.array([self.data[k].values for k in self.input_keys[2:]]).T
-        v = np.array(self.data[vkey].values)
+        subdata = deepcopy(self.data)
+        subdata[subdata['succ'] < 0.0] = 0.0 # failed cases
 
-        # instantiate interpolator
-        self.interp = LinearNDInterpolator(xyz, v)
+        xyz = []
+        print("Organise interpolator input data:")
+        grid_points = self.get_points()
+        for i,gp in enumerate(grid_points):
+            k = self.input_keys[i]
+            print("\t"+k)
+
+            # scale data
+            xx = undimen(gp,k)
+            print(f"\t\t{xx}")
+            xyz.append(xx)
+
+        # meshgrid the axes
+        xyz_g = np.meshgrid(*xyz, indexing='ij')
+
+        # arrange value to be interpolated
+        v = undimen(self.data[vkey].values, vkey)
+        v = np.array(v, copy=True, dtype=self._interp_dtype)
+        v_g = np.reshape(v, xyz_g[0].shape)
+
+        # instantiate regular-grid interpolator
+        self._interp = RegularGridInterpolator(xyz, v_g,
+                                            fill_value=None, bounds_error=False,
+                                            method=self._interp_method)
+
+        print("Interpolator created")
+
+    def interp_eval(self,loc,method=None):
+        """Evalulate the interpolator at a single location in parameter space.
+
+        Parameters
+        ------------
+        - loc : dict or list, The location to evaluate the `vkey` at.
+        """
+
+        # Check interpolate is setup
+        if not self._interp:
+            raise RuntimeError("Cannot interpolate; interpolator has not been initialised!")
+
+        # parse method
+        if method:
+            eval_method = method
+        else:
+            eval_method = self._interp_method
+
+        # parse location
+        if isinstance(loc,(list,np.ndarray)):
+            eval_loc = list(loc)
+        elif isinstance(loc, dict):
+            eval_loc = [loc[k] for k in self.input_keys]
+        else:
+            raise ValueError(f"Location must be a dict or an array, got {type(loc)}")
+
+        # Evaluate and return
+        return float(self._interp(eval_loc, method=method)[0])
