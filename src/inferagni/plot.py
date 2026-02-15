@@ -8,7 +8,7 @@ from cmcrameri import cm
 from copy import deepcopy
 import numpy as np
 
-from .const import units, R_earth, M_earth, R_jup, M_jup
+from .util import varprops, R_earth, M_earth, R_jup, M_jup
 from .grid import Grid
 
 
@@ -47,7 +47,7 @@ gas_colors = {
 gases = list(gas_colors.keys())
 for gas in gases:
     latex = latexify(gas)
-    units[f'vmr_{gas}'] = [1, True, f'{latex} VMR', cm.glasgow]
+    varprops[f'vmr_{gas}'] = [1, True, f'{latex} VMR', cm.glasgow]
 
 # ZENG+19 MASS RADIUS CURVES
 #    key = iron mass fraction
@@ -285,14 +285,10 @@ def massrad_2d(
     planet_legend = False
 
     # choose cmap
-    try:
-        cmap = units[key1][3]
-    except KeyError:
-        print(f'No cmap defined for {key1}')
-        cmap = cm.batlow
+    cmap = varprops[key1].cmap
 
     # colorbar map, for key1
-    zunit = units[key1][0]
+    zunit = varprops[key1].scale
     vmin, vmax = np.amin(subdata[key1]) * zunit, np.amax(subdata[key1]) * zunit
     if 'vmr_' in key1:
         vmin = max(vmin, vmr_min)
@@ -301,7 +297,7 @@ def massrad_2d(
     if num_z < 2:
         print(f'Warning: only 1 unique value for {key1} \n')
         return False
-    if units[key1][1]:  # log scale
+    if varprops[key1].log:  # log scale
         nm1 = mpl.colors.LogNorm(vmin=vmin, vmax=vmax)
     else:
         nm1 = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
@@ -310,7 +306,7 @@ def massrad_2d(
     # opacity map, for key2
     if key2:
         v2_uni = np.unique(subdata[key2].values)
-        if units[key2][1]:
+        if varprops[key2].log:
             v2_uni = np.log10(v2_uni)
         if len(v2_uni) < 2:
             print(f'Warning: only 1 unique value for {key2} \n')
@@ -385,7 +381,7 @@ def massrad_2d(
                     yy = np.array(df2['r_phot'].values) / R_earth
 
                     mask_srt = np.argsort(xx)  # sort them in ascending mass order
-                    if units[key2][1]:
+                    if varprops[key2].log:
                         alp = sm2(np.log10(u2))
                     else:
                         alp = sm2(u2)
@@ -466,14 +462,14 @@ def massrad_2d(
     #         a = ax.text(x,y,p, color=v[2], fontsize=text_fs, ha='right', va='bottom', zorder=902, )
     #         a.set_path_effects(text_pe)
 
-    ax.set_xlabel(units['mass_tot'][2])
+    ax.set_xlabel(varprops['mass_tot'].label)
     ax.set_xlim(xlim)
 
     ax.set_xscale('log')
     ax.xaxis.set_major_formatter(mpl.ticker.FormatStrFormatter('%g'))
     ax.xaxis.set_ticks(mass_ticks)
 
-    ax.set_ylabel(units['r_phot'][2])
+    ax.set_ylabel(varprops['r_phot'].label)
     ax.set_ylim(ylim)
 
     ax.set_yscale('log')
@@ -486,24 +482,24 @@ def massrad_2d(
     # colorbar
     if num_z > 2:
         cbkwargs = {}
-        if (not units[key1][1]) and not (len(isolines) > 30):
+        if (not varprops[key1].log) and not (len(isolines) > 30):
             cbkwargs = {'values': isolines * zunit, 'ticks': isolines * zunit}
         cb = fig.colorbar(
-            sm1, ax=ax, label=units[key1][2], location='top', pad=0.01, aspect=30, **cbkwargs
+            sm1, ax=ax, label=varprops[key1].label, location='top', pad=0.01, aspect=30, **cbkwargs
         )
 
-        if units[key1][1]:
+        if varprops[key1].log:
             cb.ax.set_xscale('log')
             cb.ax.xaxis.set_major_locator(mpl.ticker.LogLocator(numticks=9999))
 
     # controls annotation
     if show_controls:
         if key2:
-            anno = r'$\bf{Opacity} \rightarrow$' + f'{units[key2][2]} \n'
+            anno = r'$\bf{Opacity} \rightarrow$' + f'{varprops[key2].label} \n'
         else:
             anno = ''
         for k, v in controls.items():
-            anno += f'{units[k][2]}={v}\n'
+            anno += f'{varprops[k].label}={v}\n'
         anno = anno[:-1]
         ax.text(
             0.02,
