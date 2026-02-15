@@ -12,7 +12,10 @@ class Grid:
     def __init__(self, data_dir):
 
         # scalar data
-        self.data, self.input_keys, self.output_keys = self._load_from_dir(data_dir)
+        self._df_points = None
+        self._df_results = None
+        self.data = None
+        self._load_from_dir(data_dir)
 
         # profiles data
         self.profs = None  # TODO
@@ -29,39 +32,55 @@ class Grid:
         Parameters
         -----------
         - data_dir : str The directory containing the CSV files.
-
         """
 
         print('Loading data from CSV files...')
         print(f'Data directory: {data_dir}')
 
         # Read the grid point definition file
-        gridpoints_df = pd.read_csv(os.path.join(data_dir, 'nogit_points.csv'), sep=',')
+        self._df_points = pd.read_csv(os.path.join(data_dir, 'nogit_points.csv'), sep=',')
 
         # Read the consolidated results file
-        results_df = pd.read_csv(os.path.join(data_dir, 'nogit_table.csv'), sep=',')
+        self._df_results = pd.read_csv(os.path.join(data_dir, 'nogit_table.csv'), sep=',')
 
         # Merge the dataframes on index
-        data = pd.merge(gridpoints_df, results_df, on='index')
+        self.data = pd.merge(self._df_points, self._df_results, on='index')
 
         # Calculate grid size
-        gridsize = len(data)
+        gridsize = len(self.data)
         print(f'Grid size: {gridsize}')
 
         # Define input and output variables
-        input_keys = list(gridpoints_df.keys())
-        output_keys = list(results_df.keys())
-        print(f'Input vars:  {input_keys}')
-        print(f'Output vars: {output_keys}')
+        self.input_keys = list(self._df_points.keys())
+        self.output_keys = list(self._df_results.keys())
 
-        # Remove redundant variables
+        # Remove unused keys
         for k in ('index', 'worker'):
-            for v in (input_keys, output_keys):
+            for v in (self.input_keys, self.output_keys):
                 if k in v:
                     v.remove(k)
 
+        # Re-order the input dimensions
+        # Determine how frequently each input column changes in the CSV row order.
+        # A column that changes more often is the faster-varying (innermost) axis.
+        change_counts = {}
+        for k in list(self.input_keys):
+            arr = self._df_points[k].values
+            if arr.size < 2:
+                change_counts[k] = 0
+            else:
+                change_counts[k] = int(np.sum(arr[1:] != arr[:-1]))
+
+        # Sort keys by change frequency (slowest-varying first). Keep sort stable.
+        self.input_keys.sort(key=lambda kk: change_counts.get(kk, 0))
+
+        # Debug: show how often each key changes
+        print(f'Input change counts: {change_counts}')
+
+        # Print info
+        print(f'Input vars:  {self.input_keys}')
+        print(f'Output vars: {self.output_keys}')
         print('Loaded data')
-        return data, input_keys, output_keys
 
     def show_inputs(self):
         """Print the unique values of each input variable in the grid."""
@@ -70,6 +89,15 @@ class Grid:
             unique[key] = np.unique(self.data[key].values)
             print(f'{key:12s}\n\t- {unique[key]}')
         return unique
+
+    def get_points(self):
+        """Get the values of the grid axes"""
+
+        points = []
+        for key in self.input_keys:
+            points.append(pd.unique(self._df_points[key].values))
+        return points
+
 
     def interpolate_2d(self, zkey=None, controls=None, resolution=100, method='linear'):
         """Interpolate a 2D grid of z-values as a function of mass and radius.
