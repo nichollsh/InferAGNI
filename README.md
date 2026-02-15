@@ -1,7 +1,11 @@
 # AGNI Inference Package
 Inferring planet properties using AGNI as a static structure model.
 
+### Quick links:
+* AGNI repo: https://github.com/nichollsh/AGNI/
+* AGNI docs: https://www.h-nicholls.space/AGNI/
+* Zalmoxis docs: https://proteus-framework.org/Zalmoxis/
+* Paper: https://www.overleaf.com/project/6853d410bda854791be86cd7
 
-https://github.com/scipy/scipy/issues/23854
-
+Available under GPLv3. Copyright (c) 2026 Harrison Nicholls.
 
