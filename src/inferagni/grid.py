@@ -125,7 +125,7 @@ class Grid:
         # Flatten data
         points = np.array(
             [
-                subdata['mass_tot'].values * units['r_phot'][0],
+                subdata['mass_tot'].values * units['mass_tot'][0],
                 subdata['r_phot'].values * units['r_phot'][0],
             ]
         ).T
