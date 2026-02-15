@@ -6,5 +6,6 @@ import inferagni.grid
 import inferagni.cli
 import inferagni.util
 import inferagni.plot
+import inferagni.retrieve
 
-__all__ = ['grid', 'cli', 'util', 'plot']
+__all__ = ['grid', 'cli', 'util', 'plot', 'retrieve']

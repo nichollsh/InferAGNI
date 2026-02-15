@@ -5,24 +5,28 @@ import os
 import numpy as np
 from copy import deepcopy
 
-from .util import varprops, undimen, redimen
+from .util import varprops, undimen, print_sep_min
 
 
 class Grid:
     def __init__(self, data_dir):
 
         # scalar data
-        self._df_points = None
-        self._df_results = None
-        self.data = None
-        self._load_from_dir(data_dir)
+        self._df_points = None          # Dataframe of the grid points (input)
+        self._df_results = None         # Dataframe of the results (output)
+        self._bounds = None             # Bounds on the input axes
+        self.data = None                # Merged dataframe
 
-        # profiles data
-        self.profs = None  # TODO
+        self._load_from_dir(data_dir)  # load from CSVs
 
-        # emission data
-        self.emits = None  # TODO
 
+        # atmosphere profiles
+        self.profs = None  # load from NetCDF
+
+        # emission spectra
+        self.emits = None  # load from CSV
+
+        # -------------------------
         # interpolator for whole grid
         self._interp_dtype = np.float16
         self._interp_method = "linear"    # “linear”, “nearest”,   spline methods: “slinear”, “cubic”, “quintic” and “pchip”.
@@ -36,7 +40,7 @@ class Grid:
         - data_dir : str The directory containing the CSV files.
         """
 
-        print('Loading data from CSV files...')
+        print('Loading data from disk...')
         print(f'Data directory: {data_dir}')
 
         # Read the grid point definition file
@@ -49,8 +53,7 @@ class Grid:
         self.data = pd.merge(self._df_points, self._df_results, on='index')
 
         # Calculate grid size
-        gridsize = len(self.data)
-        print(f'Grid size: {gridsize}')
+        print(f'Loaded grid of size: {len(self.data)}')
 
         # Define input and output variables
         self.input_keys = list(self._df_points.keys())
@@ -63,8 +66,9 @@ class Grid:
                     v.remove(k)
 
         # Re-order the input dimensions
-        # Determine how frequently each input column changes in the CSV row order.
-        # A column that changes more often is the faster-varying (innermost) axis.
+        #   Determine how frequently each input column changes in the CSV row order.
+        #   A column that changes more often is the faster-varying (innermost) axis.
+        #   Sort keys by change frequency (slowest-varying first). Keep sort stable.
         change_counts = {}
         for k in list(self.input_keys):
             arr = self._df_points[k].values
@@ -72,17 +76,20 @@ class Grid:
                 change_counts[k] = 0
             else:
                 change_counts[k] = int(np.sum(arr[1:] != arr[:-1]))
-
-        # Sort keys by change frequency (slowest-varying first). Keep sort stable.
         self.input_keys.sort(key=lambda kk: change_counts.get(kk, 0))
 
-        # Debug: show how often each key changes
-        print(f'Input change counts: {change_counts}')
+        # Store the bounds on each dimension
+        self._bounds = np.array([(self.data[k].min(), self.data[k].max()) for k in self.input_keys])
 
         # Print info
-        print(f'Input vars:  {self.input_keys}')
-        print(f'Output vars: {self.output_keys}')
-        print('Loaded data')
+        print(f'Input vars:')
+        for i,k in enumerate(self.input_keys):
+            print(f'    {k:18s}: range [{self._bounds[i][0]} - {self._bounds[i][1]}]')
+        print('')
+        print(f'Output vars:')
+        for i,k in enumerate(self.output_keys):
+            print(f'    {k}')
+        print(print_sep_min)
 
     def show_inputs(self):
         """Print the unique values of each input variable in the grid."""
@@ -223,7 +230,7 @@ class Grid:
 
         print("Interpolator created")
 
-    def interp_eval(self,loc,method=None):
+    def interp_eval(self,loc,method:str|None=None):
         """Evalulate the interpolator at a single location in parameter space.
 
         Parameters
@@ -250,4 +257,4 @@ class Grid:
             raise ValueError(f"Location must be a dict or an array, got {type(loc)}")
 
         # Evaluate and return
-        return float(self._interp(eval_loc, method=method)[0])
+        return float(self._interp(eval_loc, method=eval_method)[0])

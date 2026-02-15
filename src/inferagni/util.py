@@ -4,15 +4,18 @@ from cmcrameri import cm
 from copy import deepcopy
 import numpy as np
 
+# Physical constants (SI units)
 Gconst = 6.6743e-11
-
 M_jup = 1.898e27
 R_jup = 69.911e3
 R_earth = 6.371e6
 M_earth = 5.972e24
-
 bar = 1e5  # Pa
 S_earth = 1361.0
+
+# Other constants
+print_sep_min:str = '-'*50
+print_sep_maj:str = '='*50
 
 class GridVar():
     def __init__(self,scale,log,label,cmap):
