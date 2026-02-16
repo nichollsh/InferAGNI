@@ -48,7 +48,7 @@ def plot(outdir, zkey, controls):
     from inferagni.grid import Grid
     from inferagni.plot import massrad_2d
 
-    massrad_2d(Grid(), zkey, None, controls_dict)
+    massrad_2d(Grid(), key1=zkey, key2=None, controls=controls_dict)
 
 
 cli.add_command(plot)

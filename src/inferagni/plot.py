@@ -232,7 +232,7 @@ def massrad_2d(
     key2=None,
     controls=None,
     show_isolines=True,
-    show_scatter=False,
+    show_scatter=True,
     show_controls=True,
     echo_gridpoints=False,
     vmr_min=1e-4,
@@ -282,7 +282,7 @@ def massrad_2d(
     print(f"    Number of grid points: {len(subdata)}")
 
     if key2:
-        if len(controls) < len(gr.input_keys) - 3:
+        if len(controls) < len(gr.input_keys) - 2:
             show_isolines = False
             print("    Too few control variables to show isolines; showing scatter points")
     else:
