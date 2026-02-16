@@ -43,7 +43,7 @@ varprops = {
     # input vars
     "frac_core"     : GridVar(1.0,       False  ,r"Core frac, $f_c$",  cm.batlow),
     "frac_atm"      : GridVar(1.0,       True   ,r"Atmos frac, $f_a$",  cm.glasgow),
-    "mass_tot"      : GridVar(1.0,       True   ,r"Planet mass, $M_p$ [$M_\oplus$]",  cm.batlow),
+    "mass_tot"      : GridVar(1.0,       False  ,r"Planet mass, $M_p$ [$M_\oplus$]",  cm.batlow),
     "instellation"  : GridVar(1.0,       True   ,r"Instellation [$S_\oplus$]", cm.batlow),
 
     "metal_C"       : GridVar(1.0,       True   ,"C/H mol", cm.hawaii_r),

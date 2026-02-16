@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-import textwrap
+from textwrap import TextWrapper
 from copy import deepcopy
 
 import numpy as np
@@ -21,11 +21,12 @@ class Grid:
         data_dir = os.path.abspath(data_dir)
         print(f"    Source: {data_dir}")
 
-        # scalar data
+        # scalar data (stored as unscaled values - same as CSV)
         self.observed_params=set(observed_params)
         self._df_points = None  # Dataframe of the grid points (input)
         self._df_results = None  # Dataframe of the results (output)
         self._bounds = None  # Bounds on the input axes
+        self._bounds_log = None # ^, but with log-scaling for some params, as appropriate
         self.data = None  # Merged dataframe
         self._load_scalars(data_dir)  # load from CSVs
 
@@ -44,7 +45,7 @@ class Grid:
         print("")
 
         # -------------------------
-        # interpolator for whole grid
+        # interpolators for the whole grid
         self._interp_dtype = np.float16
         self._interp_method = "linear"  # “linear”, “nearest”,   spline methods: “slinear”, “cubic”, “quintic” and “pchip”.
         self._interp = dict()  # Instantiated later
@@ -108,7 +109,7 @@ class Grid:
         print("    Input vars:")
         for i, k in enumerate(self.input_keys):
             print(f"      {k:18s}: range [{self._bounds[i][0]}, {self._bounds[i][1]}]")
-        wrapper = textwrap.TextWrapper(
+        wrapper = TextWrapper(
             width=45, initial_indent=" " * 6, subsequent_indent=" " * 6
         )
         print("    Output vars: ")
@@ -316,5 +317,5 @@ class Grid:
         for i,k in enumerate(self.input_keys):
             eval_loc[i] = undimen(eval_loc[i],k)
 
-        # Evaluate and return
+        # Evaluate and return the scaled value
         return float(self._interp[vkey](eval_loc, method=eval_method)[0])
