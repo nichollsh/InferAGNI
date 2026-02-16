@@ -11,7 +11,9 @@ from .util import print_sep_min, undimen, varprops
 
 
 class Grid:
-    def __init__(self, data_dir: str | None = None, emits: bool = True, profs: bool = True):
+    def __init__(self, data_dir: str | None = None,
+                    emits: bool = True, profs: bool = True,
+                    observed_params: list = []):
 
         print("Loading data from disk...")
         if not data_dir:
@@ -20,6 +22,7 @@ class Grid:
         print(f"    Source: {data_dir}")
 
         # scalar data
+        self.observed_params=set(observed_params)
         self._df_points = None  # Dataframe of the grid points (input)
         self._df_results = None  # Dataframe of the results (output)
         self._bounds = None  # Bounds on the input axes
@@ -91,6 +94,11 @@ class Grid:
                 change_counts[k] = int(np.sum(arr[1:] != arr[:-1]))
         self.input_keys.sort(key=lambda kk: change_counts.get(kk, 0))
 
+        # Make these parameters behave as observables
+        for k in set(self.observed_params):
+            self.input_keys.remove(k)
+            self.output_keys.append(k)
+
         # Store the bounds on each dimension
         self._bounds = np.array(
             [(self.data[k].min(), self.data[k].max()) for k in self.input_keys]
@@ -99,8 +107,7 @@ class Grid:
         # Print info
         print("    Input vars:")
         for i, k in enumerate(self.input_keys):
-            print(f"      {k:18s}: range [{self._bounds[i][0]} - {self._bounds[i][1]}]")
-        print("")
+            print(f"      {k:18s}: range [{self._bounds[i][0]}, {self._bounds[i][1]}]")
         wrapper = textwrap.TextWrapper(
             width=45, initial_indent=" " * 6, subsequent_indent=" " * 6
         )
@@ -141,15 +148,11 @@ class Grid:
 
     def show_inputs(self):
         """Print the unique values of each input variable in the grid."""
-        unique = {}
         for key in self.input_keys:
-            unique[key] = np.unique(self.data[key].values)
-            print(f"{key:12s}\n\t- {unique[key]}")
-        return unique
+            print(f"{key:18s}\n\t- {np.unique(self.data[key].values)}")
 
     def get_points(self):
         """Get the values of the grid axes"""
-
         points = []
         for key in self.input_keys:
             points.append(pd.unique(self._df_points[key].values))
@@ -255,17 +258,16 @@ class Grid:
         grid_points = self.get_points()
         for i, gp in enumerate(grid_points):
             k = self.input_keys[i]
-            print("\t" + k)
+            xx = undimen(gp, k) # scale data
+            xyz.append(xx) # store
 
-            # scale data
-            xx = undimen(gp, k)
-            print(f"\t\t{xx}")
-            xyz.append(xx)
+            # print("\t" + k)
+            # print(f"\t\t{xx}")
 
         # meshgrid the axes
         xyz_g = np.meshgrid(*xyz, indexing="ij")
 
-        # arrange value to be interpolated
+        # arrange value to be interpolated (usually r_phot)
         v = undimen(self.data[vkey].values, vkey)
         v = np.array(v, copy=True, dtype=self._interp_dtype)
         v_g = np.reshape(v, xyz_g[0].shape)
