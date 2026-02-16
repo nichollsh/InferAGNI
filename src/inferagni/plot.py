@@ -247,9 +247,20 @@ def massrad_2d(
     # crop to bound atmospheres
     subdata = subdata[(subdata["r_bound"] < 0.0) | (subdata["r_bound"] > subdata["r_phot"])]
 
-    print(f"Plot {key1}, {key2}")
+    print("Plot mass-radius 2D plane")
+
+    if key1 and key1 not in subdata.keys():
+        raise KeyError(f"Z-value {key1} not found in dataframe")
+    else:
+        print(f"    Zkey 1 (colour): {key1}")
+
+    if key2 and key2 not in subdata.keys():
+        raise KeyError(f"Z-value {key2} not found in dataframe")
+    else:
+        print(f"    Zkey 2 (alpha):  {key2}")
 
     # crop data by control variables
+    print("    Control variables")
     for c in controls.keys():
         if c == key1:
             raise KeyError(f"Z-value {key1} cannot also be a control variable")
@@ -258,33 +269,30 @@ def massrad_2d(
         if c in subdata.columns:
             closest = getclose(subdata[c].values, controls[c])
             if not np.isclose(closest, controls[c]):
-                print(f"\tFilter by {c:12s} = {closest}, adjusted from {controls[c]}")
+                print(f"      Filter by {c:12s} = {closest}, adjusted from {controls[c]}")
                 controls[c] = closest
             else:
-                print(f"\tFilter by {c:12s} = {controls[c]}")
+                print(f"      Filter by {c:12s} = {controls[c]}")
             subdata = subdata[np.isclose(subdata[c], controls[c])]
         if len(subdata) < 1:
             print("No data remaining! \n")
             return False
 
-    if key1 and key1 not in subdata.keys():
-        raise KeyError(f"Z-value {key1} not found in dataframe")
-    if key2 and key2 not in subdata.keys():
-        raise KeyError(f"Z-value {key2} not found in dataframe")
-
-    print(f"Number of grid points: {len(subdata)}")
+    print(f"    Number of grid points: {len(subdata)}")
 
     if key2:
         if len(controls) < len(gr.input_keys) - 3:
             show_isolines = False
+            print("    Too few control variables to show isolines; showing scatter points")
     else:
         if len(controls) < len(gr.input_keys) - 2:
             show_isolines = False
+            print("    Too few control variables to show isolines; showing scatter points")
 
     # create figure object
     figscale = 1.2
     fig, ax = plt.subplots(
-        1, 1, figsize=(5 * figscale, 4 * figscale), dpi=240, num="Mass-Radius 2D"
+        1, 1, figsize=(5 * figscale, 4 * figscale), dpi=200, num="Mass-Radius 2D"
     )
 
     # configure...
@@ -308,10 +316,10 @@ def massrad_2d(
     vmin, vmax = np.amin(subdata[key1]) * zunit, np.amax(subdata[key1]) * zunit
     if "vmr_" in key1:
         vmin = max(vmin, vmr_min)
-    print(f"vmin:{vmin}    vmax:{vmax}")
+    print(f"    Colorbar shows '{key1}': vmin {vmin} - vmax {vmax}")
     num_z = len(np.unique(subdata[key1]))
     if num_z < 2:
-        print(f"Warning: only 1 unique value for {key1} \n")
+        print(f"    Warning: only 1 unique value for {key1} \n")
         return False
     if varprops[key1].log:  # log scale
         nm1 = mpl.colors.LogNorm(vmin=vmin, vmax=vmax)
@@ -325,7 +333,7 @@ def massrad_2d(
         if varprops[key2].log:
             v2_uni = np.log10(v2_uni)
         if len(v2_uni) < 2:
-            print(f"Warning: only 1 unique value for {key2} \n")
+            print(f"    Warning: only 1 unique value for {key2} \n")
             return False
 
         def sm2(_v):
@@ -334,13 +342,13 @@ def massrad_2d(
 
     # echo
     if echo_gridpoints:
-        print("Matching grid points:")
+        print("    Matching grid points:")
         for row in subdata.iterrows():
             row = row[1]
             i = int(row["index"])
             x = row["mass_tot"]
             y = row["r_phot"] / R_earth
-            print(f"   index={i:7d}:  m={x:.2f}    r={y:.2f}")
+            print(f"     index={i:7d}:  m={x:.2f}    r={y:.2f}")
             if (xlim[0] <= x <= xlim[1]) and (ylim[0] <= y <= ylim[1]):
                 ax.text(x, y, str(i), fontsize=8, color="red")
 
@@ -606,7 +614,9 @@ def massrad_2d(
     # show and save
     fig.tight_layout()
     if save:
+        print(f"    Saving plot to '{save}'")
         fig.savefig(save)
     if show:
+        print("    Showing plot GUI")
         plt.show()
     return fig
