@@ -258,8 +258,13 @@ class Grid:
         grid_points = self.get_points()
         for i, gp in enumerate(grid_points):
             k = self.input_keys[i]
-            xx = undimen(gp, k) # scale data
-            xyz.append(xx) # store
+
+            # scale data
+            xx = np.array(gp, copy=True, dtype=self._interp_dtype)
+            xx = undimen(gp, k)
+
+            # store
+            xyz.append(xx)
 
             # print("\t" + k)
             # print(f"\t\t{xx}")
@@ -306,6 +311,10 @@ class Grid:
             eval_loc = [loc[k] for k in self.input_keys]
         else:
             raise ValueError(f"Location must be a dict or an array, got {type(loc)}")
+
+        # scale inputs
+        for i,k in enumerate(self.input_keys):
+            eval_loc[i] = undimen(eval_loc[i],k)
 
         # Evaluate and return
         return float(self._interp[vkey](eval_loc, method=eval_method)[0])
