@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import textwrap
 from copy import deepcopy
 
 import numpy as np
@@ -90,9 +91,11 @@ class Grid:
         for i, k in enumerate(self.input_keys):
             print(f"    {k:18s}: range [{self._bounds[i][0]} - {self._bounds[i][1]}]")
         print("")
-        print("Output vars:")
-        for i, k in enumerate(self.output_keys):
-            print(f"    {k}")
+        wrapper = textwrap.TextWrapper(
+            width=45, initial_indent=" " * 4, subsequent_indent=" " * 4
+        )
+        print("Output vars: ")
+        print(wrapper.fill(", ".join(self.output_keys)))
         print(print_sep_min)
 
     def show_inputs(self):

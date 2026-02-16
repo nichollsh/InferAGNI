@@ -33,6 +33,8 @@ def cli():
 @click.argument("controls", nargs=-1)
 def plot(outdir, zkey, controls):
     """Make mass-radius plot, given some control variables"""
+
+    click.echo("Plot mass-radius 2D")
     click.echo(f"Outdir:   {outdir}")
     click.echo(f"Zkey:     {zkey}")
     click.echo(f"Controls: {controls}")
