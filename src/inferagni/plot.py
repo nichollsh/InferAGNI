@@ -1,23 +1,23 @@
 from __future__ import annotations
 
+from copy import deepcopy
+
 import matplotlib as mpl
-import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
+import matplotlib.pyplot as plt
+import numpy as np
 from cmcrameri import cm
 
-from copy import deepcopy
-import numpy as np
-
-from .util import varprops, R_earth, M_earth, R_jup, M_jup
 from .grid import Grid
-from .planets import units, exoplanets, solarsys
+from .planets import exoplanets, solarsys
+from .util import R_earth, getclose, varprops
 
 
 def latexify(s):
-    latex = ''
+    latex = ""
     for c in s:
         if c.isnumeric():
-            latex += f'$_{c}$'
+            latex += f"$_{c}$"
         else:
             latex += c
     return latex
@@ -25,30 +25,30 @@ def latexify(s):
 
 gas_colors = {
     # H rich
-    'H2': '#008C01',
-    'H2O': '#027FB1',
-    'CH4': '#C720DD',
+    "H2": "#008C01",
+    "H2O": "#027FB1",
+    "CH4": "#C720DD",
     # C rich
-    'CO': '#D1AC02',
+    "CO": "#D1AC02",
     # S rich
-    'H2S': '#640deb',
-    'S2': '#FF8FA1',
-    'SO2': '#00008B',
+    "H2S": "#640deb",
+    "S2": "#FF8FA1",
+    "SO2": "#00008B",
     # O rich
-    'OH': '#00ffd4',
-    'CO2': '#D24901',
-    'O2': '#00ff00',
+    "OH": "#00ffd4",
+    "CO2": "#D24901",
+    "O2": "#00ff00",
     # N rich
-    'NO2': '#eb0076',
-    'H2SO4': '#46eba4',
-    'N2': '#870036',
-    'NH3': '#675200',
+    "NO2": "#eb0076",
+    "H2SO4": "#46eba4",
+    "N2": "#870036",
+    "NH3": "#675200",
 }
 
 gases = list(gas_colors.keys())
 for gas in gases:
     latex = latexify(gas)
-    varprops[f'vmr_{gas}'] = [1, True, f'{latex} VMR', cm.glasgow]
+    varprops[f"vmr_{gas}"] = [1, True, f"{latex} VMR", cm.glasgow]
 
 # ZENG+19 MASS RADIUS CURVES
 #    key = iron mass fraction
@@ -221,7 +221,7 @@ zeng_irn = [
 zeng[1.0] = np.array(zeng_irn).T
 
 
-left_align = ['T1', 'L98-59']
+left_align = ["T1", "L98-59"]
 mass_ticks = [0.8, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 7, 8.0, 10.0]
 radius_ticks = [0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 6.0, 7.0]
 
@@ -231,60 +231,72 @@ def massrad_2d(
     key1=None,
     key2=None,
     controls=None,
-    show_scatter=False,
     show_isolines=True,
     show_controls=True,
     echo_gridpoints=False,
     vmr_min=1e-4,
-
     show=True,
-    save="massrad2d.pdf"
+    save="massrad2d.pdf",
 ):
     # copy dataframe
     subdata = deepcopy(gr.data)
 
     # crop to successful runs (succ==1)
-    subdata = subdata[subdata['succ'] > 0.0]
+    subdata = subdata[subdata["succ"] > 0.0]
 
     # crop to bound atmospheres
-    subdata = subdata[(subdata['r_bound'] < 0.0) | (subdata['r_bound'] > subdata['r_phot'])]
+    subdata = subdata[(subdata["r_bound"] < 0.0) | (subdata["r_bound"] > subdata["r_phot"])]
 
-    print(f'Plot {key1}, {key2}')
+    print(f"Plot {key1}, {key2}")
 
     # crop data by control variables
     for c in controls.keys():
         if c == key1:
-            raise KeyError(f'Z-value {key1} cannot also be a control variable')
+            raise KeyError(f"Z-value {key1} cannot also be a control variable")
         if c == key2:
-            raise KeyError(f'Z-value {key2} cannot also be a control variable')
+            raise KeyError(f"Z-value {key2} cannot also be a control variable")
         if c in subdata.columns:
-            print(f'Filter by {c} = {controls[c]}')
+            closest = getclose(subdata[c].values, controls[c])
+            if not np.isclose(closest, controls[c]):
+                print(f"\tFilter by {c:12s} = {closest}, adjusted from {controls[c]}")
+                controls[c] = closest
+            else:
+                print(f"\tFilter by {c:12s} = {controls[c]}")
             subdata = subdata[np.isclose(subdata[c], controls[c])]
         if len(subdata) < 1:
-            print('No data remaining! \n')
+            print("No data remaining! \n")
             return False
 
-    if key1 and not (key1 in subdata.keys()):
-        raise KeyError(f'Z-value {key1} not found in dataframe')
-    if key2 and not (key2 in subdata.keys()):
-        raise KeyError(f'Z-value {key2} not found in dataframe')
+    if key1 and key1 not in subdata.keys():
+        raise KeyError(f"Z-value {key1} not found in dataframe")
+    if key2 and key2 not in subdata.keys():
+        raise KeyError(f"Z-value {key2} not found in dataframe")
 
-    print(f'Number of points: {len(subdata)}')
+    print(f"Number of grid points: {len(subdata)}")
+
+    if key2:
+        if len(controls) < len(gr.input_keys) - 3:
+            show_isolines = False
+    else:
+        if len(controls) < len(gr.input_keys) - 2:
+            show_isolines = False
 
     # create figure object
-    figscale = 1.5
-    fig, ax = plt.subplots(1, 1, figsize=(5 * figscale, 4 * figscale), num="Mass-Radius 2D")
+    figscale = 1.2
+    fig, ax = plt.subplots(
+        1, 1, figsize=(5 * figscale, 4 * figscale), dpi=240, num="Mass-Radius 2D"
+    )
 
     # configure...
     xlim = [mass_ticks[0], mass_ticks[-1]]
     ylim = [radius_ticks[0], radius_ticks[-1]]
     s = 16
     sn = 35
-    ec = 'grey'
+    ec = "grey"
     lw = 0.8
     sm2_min = 0.3
     sm2_max = 1.0
-    text_pe = [pe.Stroke(linewidth=0.9, foreground='black'), pe.Normal()]
+    text_pe = [pe.Stroke(linewidth=0.9, foreground="black"), pe.Normal()]
     text_fs = 9
     planet_legend = False
 
@@ -294,12 +306,12 @@ def massrad_2d(
     # colorbar map, for key1
     zunit = varprops[key1].scale
     vmin, vmax = np.amin(subdata[key1]) * zunit, np.amax(subdata[key1]) * zunit
-    if 'vmr_' in key1:
+    if "vmr_" in key1:
         vmin = max(vmin, vmr_min)
-    print(f'vmin:{vmin}    vmax:{vmax}')
+    print(f"vmin:{vmin}    vmax:{vmax}")
     num_z = len(np.unique(subdata[key1]))
     if num_z < 2:
-        print(f'Warning: only 1 unique value for {key1} \n')
+        print(f"Warning: only 1 unique value for {key1} \n")
         return False
     if varprops[key1].log:  # log scale
         nm1 = mpl.colors.LogNorm(vmin=vmin, vmax=vmax)
@@ -313,7 +325,7 @@ def massrad_2d(
         if varprops[key2].log:
             v2_uni = np.log10(v2_uni)
         if len(v2_uni) < 2:
-            print(f'Warning: only 1 unique value for {key2} \n')
+            print(f"Warning: only 1 unique value for {key2} \n")
             return False
 
         def sm2(_v):
@@ -322,55 +334,55 @@ def massrad_2d(
 
     # echo
     if echo_gridpoints:
-        print('Matching grid points:')
+        print("Matching grid points:")
         for row in subdata.iterrows():
             row = row[1]
-            i = int(row['index'])
-            x = row['mass_tot']
-            y = row['r_phot'] / R_earth
-            print(f'   index={i:7d}:  m={x:.2f}    r={y:.2f}')
+            i = int(row["index"])
+            x = row["mass_tot"]
+            y = row["r_phot"] / R_earth
+            print(f"   index={i:7d}:  m={x:.2f}    r={y:.2f}")
             if (xlim[0] <= x <= xlim[1]) and (ylim[0] <= y <= ylim[1]):
-                ax.text(x, y, str(i), fontsize=8, color='red')
+                ax.text(x, y, str(i), fontsize=8, color="red")
 
     # Grid results
-    if show_scatter:
+    if not show_isolines:
         c = np.array([sm1.to_rgba(z) for z in subdata[key1] * zunit])
 
         rast = bool(len(c) > 500)
 
         # bound atmospheres
         # bnd = np.array(() | (subdata['r_bound'] > subdata['r_phot']), dtype=bool)
-        bnd = np.array(subdata['r_bound'] < 0.0)
+        bnd = np.array(subdata["r_bound"] < 0.0)
         ax.scatter(
-            subdata['mass_tot'][bnd],
-            subdata['r_phot'][bnd] / R_earth,
+            subdata["mass_tot"][bnd],
+            subdata["r_phot"][bnd] / R_earth,
             c=c[bnd],
             rasterized=rast,
             zorder=10,
             alpha=0.7,
             edgecolors=ec,
-            label='Models',
+            label="Models",
             s=s,
-            marker='o',
+            marker="o",
         )
 
         # partially unbound
         ax.scatter(
-            subdata['mass_tot'][~bnd],
-            subdata['r_phot'][~bnd] / R_earth,
+            subdata["mass_tot"][~bnd],
+            subdata["r_phot"][~bnd] / R_earth,
             c=c[~bnd],
             rasterized=rast,
             zorder=10,
             alpha=0.7,
             edgecolors=ec,
             s=s,
-            marker='X',
+            marker="X",
         )
 
     # Plot grid as lines of constant key
     isolines = np.unique(subdata[key1])
     if show_isolines:
-        ax.plot([], [], label='Isolines', lw=lw, color='grey')
+        ax.plot([], [], label="Isolines", lw=lw, color="grey")
         # for each key1
         for u in isolines:
             df = subdata[subdata[key1] == u]  # get rows with key= this value
@@ -381,8 +393,8 @@ def massrad_2d(
             if key2:
                 for u2 in np.unique(df[key2]):
                     df2 = df[df[key2] == u2]
-                    xx = np.array(df2['mass_tot'].values)
-                    yy = np.array(df2['r_phot'].values) / R_earth
+                    xx = np.array(df2["mass_tot"].values)
+                    yy = np.array(df2["r_phot"].values) / R_earth
 
                     mask_srt = np.argsort(xx)  # sort them in ascending mass order
                     if varprops[key2].log:
@@ -392,32 +404,48 @@ def massrad_2d(
                     ax.plot(xx[mask_srt], yy[mask_srt], zorder=300, color=col, alpha=alp, lw=lw)
             else:
                 alp = 0.7
-                xx = np.array(df['mass_tot'].values)
-                yy = np.array(df['r_phot'].values) / R_earth
+                xx = np.array(df["mass_tot"].values)
+                yy = np.array(df["r_phot"].values) / R_earth
                 mask_srt = np.argsort(xx)  # sort them in ascending mass order
                 ax.plot(xx[mask_srt], yy[mask_srt], zorder=300, color=col, alpha=alp, lw=lw)
 
     # Zeng2019 curves without atmospheres
-    col = 'blue'
-    ax.plot([], [], ls='dashed', color=col, label=r'Zeng airless', lw=lw)
+    col = "blue"
+    ax.plot([], [], ls="dashed", color=col, label=r"Zeng airless", lw=lw)
     for k, (x, y) in zeng.items():
-        ax.plot(x, y, zorder=7, ls='dashed', color=col, lw=lw)
+        ax.plot(x, y, zorder=7, ls="dashed", color=col, lw=lw)
         # x0 = xlim[1] * 1.01
         # y0 = y[np.argmin(np.abs(x - x0))]
         # ax.text(x0, y0, k, ha='left', va='center', color=col, fontsize=text_fs)
 
     # Exoplanets
-    ax.scatter(exoplanets.mass().value,
-                exoplanets.radius().value,
-                s=s/2, label="Exoplanets",
-                color='gray', edgecolors='none', alpha=0.5, zorder=0, rasterized=True)
+    ax.scatter(
+        exoplanets.mass().value,
+        exoplanets.radius().value,
+        s=s / 2,
+        label="Exoplanets",
+        color="gray",
+        edgecolors="none",
+        alpha=0.5,
+        zorder=0,
+        rasterized=True,
+    )
 
     # Named exoplanets
-    exo_named = [ "TRAPPIST-1","L 98-59", "TOI-561", "K2-18", "GJ 1214",
-                    "55 Cnc", "TOI-270", "GJ 9827", "LP 791-18"]
-    exo_colors = [mpl.colormaps.get_cmap('tab10')(x) for x in np.linspace(0,1,len(exo_named))]
+    exo_named = [
+        "TRAPPIST-1",
+        "L 98-59",
+        "TOI-561",
+        "K2-18",
+        "GJ 1214",
+        "55 Cnc",
+        "TOI-270",
+        "GJ 9827",
+        "LP 791-18",
+    ]
+    exo_colors = [mpl.colormaps.get_cmap("tab10")(x) for x in np.linspace(0, 1, len(exo_named))]
 
-    for j,s in enumerate(exo_named):
+    for j, s in enumerate(exo_named):
         col = exo_colors[j]
         system = exoplanets[s]
 
@@ -425,7 +453,6 @@ def massrad_2d(
         y = system.radius().value
 
         for i in range(len(x)):
-
             if i == 0:
                 lbl = s
             else:
@@ -434,29 +461,47 @@ def massrad_2d(
                 lbl = None
 
             pl = str(system.name()[i])
-            pl = pl.replace("TRAPPIST-1","T1")
-            pl = pl.replace("Cnc A","Cnc")
-            pl = pl.replace(" ","")
+            pl = pl.replace("TRAPPIST-1", "T1")
+            pl = pl.replace("Cnc A", "Cnc")
+            pl = pl.replace(" ", "")
 
             if not (xlim[0] < x[i] < xlim[1]) or not (ylim[0] < y[i] < ylim[1]):
                 continue
 
-            a = ax.scatter(x[i],y[i], s=sn, label=lbl, alpha=0.8, zorder=901,
-                                color=col, ec='k', marker='D')
+            a = ax.scatter(
+                x[i],
+                y[i],
+                s=sn,
+                label=lbl,
+                alpha=0.8,
+                zorder=901,
+                color=col,
+                ec="k",
+                marker="D",
+            )
             if not planet_legend:
                 if np.any([pl.startswith(la) for la in left_align]):
-                    ha = 'left'
+                    ha = "left"
                 else:
-                    ha = 'right'
-                a = ax.text(x[i],y[i],pl, color=col, fontsize=text_fs, ha=ha, va='bottom', zorder=902, )
+                    ha = "right"
+                a = ax.text(
+                    x[i],
+                    y[i],
+                    pl,
+                    color=col,
+                    fontsize=text_fs,
+                    ha=ha,
+                    va="bottom",
+                    zorder=902,
+                )
                 a.set_path_effects(text_pe)
 
     # Solar system bodies
     ss_colors = {
-        "Mercury": 'grey',
-        "Venus":   'tab:orange',
-        "Earth":   'tab:blue',
-        "Mars":    'tab:red'
+        "Mercury": "grey",
+        "Venus": "tab:orange",
+        "Earth": "tab:blue",
+        "Mars": "tab:red",
     }
     for p in solarsys:
         x = p.mass().value[0]
@@ -465,25 +510,42 @@ def massrad_2d(
             continue
 
         v = p.name()[0]
-        c = getattr(ss_colors,v,None)
-        ax.scatter(x,y, label=v if planet_legend else None, zorder=902,
-                    s=sn, marker='D', edgecolors='k', color=c)
+        c = getattr(ss_colors, v, None)
+        ax.scatter(
+            x,
+            y,
+            label=v if planet_legend else None,
+            zorder=902,
+            s=sn,
+            marker="D",
+            edgecolors="k",
+            color=c,
+        )
         if not planet_legend:
-            a = ax.text(x,y,v, color=c, fontsize=text_fs, ha='right', va='bottom', zorder=902, )
+            a = ax.text(
+                x,
+                y,
+                v,
+                color=c,
+                fontsize=text_fs,
+                ha="right",
+                va="bottom",
+                zorder=902,
+            )
             a.set_path_effects(text_pe)
 
-    ax.set_xlabel(varprops['mass_tot'].label)
+    ax.set_xlabel(varprops["mass_tot"].label)
     ax.set_xlim(xlim)
 
-    ax.set_xscale('log')
-    ax.xaxis.set_major_formatter(mpl.ticker.FormatStrFormatter('%g'))
+    ax.set_xscale("log")
+    ax.xaxis.set_major_formatter(mpl.ticker.FormatStrFormatter("%g"))
     ax.xaxis.set_ticks(mass_ticks)
 
-    ax.set_ylabel(varprops['r_phot'].label)
+    ax.set_ylabel(varprops["r_phot"].label)
     ax.set_ylim(ylim)
 
-    ax.set_yscale('log')
-    ax.yaxis.set_major_formatter(mpl.ticker.FormatStrFormatter('%.1f'))
+    ax.set_yscale("log")
+    ax.yaxis.set_major_formatter(mpl.ticker.FormatStrFormatter("%.1f"))
     ax.yaxis.set_ticks(radius_ticks)
 
     # grid
@@ -493,23 +555,29 @@ def massrad_2d(
     if num_z > 2:
         cbkwargs = {}
         if (not varprops[key1].log) and not (len(isolines) > 30):
-            cbkwargs = {'values': isolines * zunit, 'ticks': isolines * zunit}
+            cbkwargs = {"values": isolines * zunit, "ticks": isolines * zunit}
         cb = fig.colorbar(
-            sm1, ax=ax, label=varprops[key1].label, location='top', pad=0.01, aspect=30, **cbkwargs
+            sm1,
+            ax=ax,
+            label=varprops[key1].label,
+            location="top",
+            pad=0.01,
+            aspect=30,
+            **cbkwargs,
         )
 
         if varprops[key1].log:
-            cb.ax.set_xscale('log')
+            cb.ax.set_xscale("log")
             cb.ax.xaxis.set_major_locator(mpl.ticker.LogLocator(numticks=9999))
 
     # controls annotation
     if show_controls:
         if key2:
-            anno = r'$\bf{Opacity} \rightarrow$' + f'{varprops[key2].label} \n'
+            anno = r"$\bf{Opacity} \rightarrow$" + f"{varprops[key2].label} \n"
         else:
-            anno = ''
+            anno = ""
         for k, v in controls.items():
-            anno += f'{varprops[k].label}={v}\n'
+            anno += f"{varprops[k].label}={v}\n"
         anno = anno[:-1]
         ax.text(
             0.02,
@@ -517,16 +585,16 @@ def massrad_2d(
             anno,
             transform=ax.transAxes,
             fontsize=text_fs + 1,
-            ha='left',
-            va='top',
+            ha="left",
+            va="top",
             zorder=9999,
-            bbox=dict(facecolor='w', alpha=0.5, edgecolor='none'),
+            bbox=dict(facecolor="w", alpha=0.5, edgecolor="none"),
         )
 
     # legend
     leg = ax.legend(
         framealpha=1,
-        loc='lower right',
+        loc="lower right",
         ncol=2,
         fontsize=text_fs,
         columnspacing=0.8,
@@ -538,7 +606,7 @@ def massrad_2d(
     # show and save
     fig.tight_layout()
     if save:
-        fig.savefig(save, dpi=200)
+        fig.savefig(save)
     if show:
         plt.show()
     return fig
