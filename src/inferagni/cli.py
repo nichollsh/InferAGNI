@@ -38,6 +38,7 @@ def plot(outdir, zkey, controls):
     click.echo(f"Outdir:   {outdir}")
     click.echo(f"Zkey:     {zkey}")
     click.echo(f"Controls: {controls}")
+    click.echo(" ")
 
     # convert control to dict
     controls_dict = {}
