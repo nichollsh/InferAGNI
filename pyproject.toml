@@ -40,7 +40,9 @@ dependencies = [
     "ruff",
     "click",
     "emcee",
-    "corner"
+    "corner",
+    "adjusttext",
+    "exoatlas@git+https://github.com/zkbt/exoatlas@main"
 ]
 
 [project.urls]

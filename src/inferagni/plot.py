@@ -10,6 +10,7 @@ import numpy as np
 
 from .util import varprops, R_earth, M_earth, R_jup, M_jup
 from .grid import Grid
+from .planets import units, exoplanets, solarsys
 
 
 def latexify(s):
@@ -235,6 +236,9 @@ def massrad_2d(
     show_controls=True,
     echo_gridpoints=False,
     vmr_min=1e-4,
+
+    show=True,
+    save="massrad2d.pdf"
 ):
     # copy dataframe
     subdata = deepcopy(gr.data)
@@ -268,8 +272,8 @@ def massrad_2d(
     print(f'Number of points: {len(subdata)}')
 
     # create figure object
-    figscale = 1.1
-    fig, ax = plt.subplots(1, 1, figsize=(5 * figscale, 4 * figscale))
+    figscale = 1.5
+    fig, ax = plt.subplots(1, 1, figsize=(5 * figscale, 4 * figscale), num="Mass-Radius 2D")
 
     # configure...
     xlim = [mass_ticks[0], mass_ticks[-1]]
@@ -403,64 +407,70 @@ def massrad_2d(
         # ax.text(x0, y0, k, ha='left', va='center', color=col, fontsize=text_fs)
 
     # Exoplanets
-    # ax.scatter(exo_dat["mass"].values * M_jup / M_earth,
-    #             exo_dat["radius"].values * R_jup / R_earth,
-    #             s=s/2, label="Exoplanets",
-    #             color='gray', edgecolors='none', alpha=0.5, zorder=0, rasterized=True)
+    ax.scatter(exoplanets.mass().value,
+                exoplanets.radius().value,
+                s=s/2, label="Exoplanets",
+                color='gray', edgecolors='none', alpha=0.5, zorder=0, rasterized=True)
 
     # Named exoplanets
-    # for j,s in enumerate(exo_named):
-    #     col = exo_colors[j]
-    #     for i,p in enumerate(s):
+    exo_named = [ "TRAPPIST-1","L 98-59", "TOI-561", "K2-18", "GJ 1214",
+                    "55 Cnc", "TOI-270", "GJ 9827", "LP 791-18"]
+    exo_colors = [mpl.colormaps.get_cmap('tab10')(x) for x in np.linspace(0,1,len(exo_named))]
 
-    #         try:
-    #             row = exo_dat.loc[exo_dat['name'] == p].iloc[0]
-    #         except IndexError as e:
-    #             print(f"Cannot find planet '{p}' in database")
-    #             continue
+    for j,s in enumerate(exo_named):
+        col = exo_colors[j]
+        system = exoplanets[s]
 
-    #         if i == 0:
-    #             lbl = p[:-2]
-    #         else:
-    #             lbl = None
-    #         if not planet_legend:
-    #             lbl = None
+        x = system.mass().value
+        y = system.radius().value
 
-    #         pl = str(p)
-    #         pl = pl.replace("TRAPPIST-1","T1")
-    #         pl = pl.replace("Cnc A","Cnc")
-    #         pl = pl.replace(" ","")
+        for i in range(len(x)):
 
-    #         x = row["mass"] * M_jup / M_earth
-    #         y = row["radius"] * R_jup / R_earth
-    #         if not (xlim[0] < x < xlim[1]) or not (ylim[0] < y < ylim[1]):
-    #             continue
+            if i == 0:
+                lbl = s
+            else:
+                lbl = None
+            if not planet_legend:
+                lbl = None
 
-    #         a = ax.scatter(x,y, s=sn, label=lbl, alpha=0.8, zorder=901,
-    #                             color=col, ec='k', marker='D')
-    #         if not planet_legend:
-    #             if np.any([pl.startswith(la) for la in left_align]):
-    #                 ha = 'left'
-    #             else:
-    #                 ha = 'right'
-    #             a = ax.text(x,y,pl, color=col, fontsize=text_fs, ha=ha, va='bottom', zorder=902, )
-    #             a.set_path_effects(text_pe)
+            pl = str(system.name()[i])
+            pl = pl.replace("TRAPPIST-1","T1")
+            pl = pl.replace("Cnc A","Cnc")
+            pl = pl.replace(" ","")
 
-    # Known planets (radius/km, mass/1e24kg)
-    # https://ssd.jpl.nasa.gov/planets/phys_par.html
-    # planets = {
-        # "Mercury": [2439.4, 0.33010, 'grey'],
-        # "Venus":   [6051.8, 4.86731, 'tab:orange'],
-        # "Earth":   [6371.0, 5.97217, 'tab:blue'],
-        # "Mars":    [3389.5, 0.64169, 'tab:red']
-    # }
-    # for p,v in planets.items():
-    #     x,y = v[1]*1e24/M_earth, v[0]*1e3/R_earth
-    #     ax.scatter(x,y, label=p if planet_legend else None, zorder=902,
-    #                 s=sn, marker='D', edgecolors='k', color=v[2])
-    #     if not planet_legend:
-    #         a = ax.text(x,y,p, color=v[2], fontsize=text_fs, ha='right', va='bottom', zorder=902, )
-    #         a.set_path_effects(text_pe)
+            if not (xlim[0] < x[i] < xlim[1]) or not (ylim[0] < y[i] < ylim[1]):
+                continue
+
+            a = ax.scatter(x[i],y[i], s=sn, label=lbl, alpha=0.8, zorder=901,
+                                color=col, ec='k', marker='D')
+            if not planet_legend:
+                if np.any([pl.startswith(la) for la in left_align]):
+                    ha = 'left'
+                else:
+                    ha = 'right'
+                a = ax.text(x[i],y[i],pl, color=col, fontsize=text_fs, ha=ha, va='bottom', zorder=902, )
+                a.set_path_effects(text_pe)
+
+    # Solar system bodies
+    ss_colors = {
+        "Mercury": 'grey',
+        "Venus":   'tab:orange',
+        "Earth":   'tab:blue',
+        "Mars":    'tab:red'
+    }
+    for p in solarsys:
+        x = p.mass().value[0]
+        y = p.radius().value[0]
+        if not (xlim[0] < x < xlim[1]) or not (ylim[0] < y < ylim[1]):
+            continue
+
+        v = p.name()[0]
+        c = getattr(ss_colors,v,None)
+        ax.scatter(x,y, label=v if planet_legend else None, zorder=902,
+                    s=sn, marker='D', edgecolors='k', color=c)
+        if not planet_legend:
+            a = ax.text(x,y,v, color=c, fontsize=text_fs, ha='right', va='bottom', zorder=902, )
+            a.set_path_effects(text_pe)
 
     ax.set_xlabel(varprops['mass_tot'].label)
     ax.set_xlim(xlim)
@@ -527,4 +537,8 @@ def massrad_2d(
 
     # show and save
     fig.tight_layout()
+    if save:
+        fig.savefig(save, dpi=200)
+    if show:
+        plt.show()
     return fig

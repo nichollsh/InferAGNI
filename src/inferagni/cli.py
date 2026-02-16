@@ -30,12 +30,23 @@ def cli():
 @click.command()
 @output_option
 @click.argument('zkey', nargs=1)
-@click.argument('control', nargs=-1)
-def plot(outdir, zkey, control):
+@click.argument('controls', nargs=-1)
+def plot(outdir, zkey, controls):
     """Make mass-radius plot, given some control variables"""
-    click.echo(f'Outdir:  {outdir}')
-    click.echo(f'Zkey:    {zkey}')
-    click.echo(f'Control: {control}')
+    click.echo(f'Outdir:   {outdir}')
+    click.echo(f'Zkey:     {zkey}')
+    click.echo(f'Controls: {controls}')
+
+    # convert control to dict
+    controls_dict = {}
+    for c in controls:
+        k,v = c.split("=")
+        controls_dict[str(k)]=float(v)
+
+    from inferagni.plot import massrad_2d
+    from inferagni.grid import Grid
+
+    massrad_2d(Grid(), zkey, None, controls_dict)
 
 cli.add_command(plot)
 
