@@ -38,6 +38,7 @@ class GridVar:
 
 
 # scale factor, log axis true/false, unit string, colormap
+# fmt: off
 varprops = {
     # input vars
     "frac_core"     : GridVar(1.0,       False  ,r"Core frac, $f_c$",  cm.batlow),
@@ -80,6 +81,7 @@ varprops = {
 
     "dom_gas"       : GridVar(1,         False, "_dominant_gas", None)
 }
+# fmt: on
 
 
 def undimen(arr, key):
