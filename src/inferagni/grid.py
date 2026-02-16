@@ -11,7 +11,7 @@ from .util import print_sep_min, undimen, varprops
 
 
 class Grid:
-    def __init__(self, data_dir: str | None = None, emits: bool = False, profs: bool = False):
+    def __init__(self, data_dir: str | None = None, emits: bool = True, profs: bool = True):
 
         print("Loading data from disk...")
         if not data_dir:
@@ -36,6 +36,9 @@ class Grid:
         self.profs = None  # load from NetCDF
         if profs:
             self._load_profs(data_dir)  # load from NetCDF
+
+        print(print_sep_min)
+        print("")
 
         # -------------------------
         # interpolator for whole grid
@@ -63,7 +66,7 @@ class Grid:
         self.data = pd.merge(self._df_points, self._df_results, on="index")
 
         # Calculate grid size
-        print(f"Loaded scalar-grid of size: {len(self.data)}")
+        print(f"    Grid size: {len(self.data)} points")
 
         # Define input and output variables
         self.input_keys = list(self._df_points.keys())
@@ -94,16 +97,15 @@ class Grid:
         )
 
         # Print info
-        print("Input vars:")
+        print("    Input vars:")
         for i, k in enumerate(self.input_keys):
-            print(f"    {k:18s}: range [{self._bounds[i][0]} - {self._bounds[i][1]}]")
+            print(f"      {k:18s}: range [{self._bounds[i][0]} - {self._bounds[i][1]}]")
         print("")
         wrapper = textwrap.TextWrapper(
-            width=45, initial_indent=" " * 4, subsequent_indent=" " * 4
+            width=45, initial_indent=" " * 6, subsequent_indent=" " * 6
         )
-        print("Output vars: ")
+        print("    Output vars: ")
         print(wrapper.fill(", ".join(self.output_keys)))
-        print(print_sep_min)
 
     def _load_emits(self, data_dir: str):
         """Read fluxes table"""
