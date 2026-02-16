@@ -223,6 +223,11 @@ nogit_*
 *.png
 *.jpg
 
+downloads-for-exoatlas
+exoatlas-data
+src/inferagni/data/*
+!src/inferagni/data/readme.txt
+
 # From Read the Docs
 ####################
 
@@ -248,7 +253,6 @@ ipython_config.py
 __pycache__/
 *.py[cod]
 *$py.class
-downloads-for-exoatlas
 
 # C extensions
 *.so

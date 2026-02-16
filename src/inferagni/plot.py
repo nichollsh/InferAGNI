@@ -232,6 +232,7 @@ def massrad_2d(
     key2=None,
     controls=None,
     show_isolines=True,
+    show_scatter=False,
     show_controls=True,
     echo_gridpoints=False,
     vmr_min=1e-4,
@@ -353,7 +354,7 @@ def massrad_2d(
                 ax.text(x, y, str(i), fontsize=8, color="red")
 
     # Grid results
-    if not show_isolines:
+    if show_scatter:
         c = np.array([sm1.to_rgba(z) for z in subdata[key1] * zunit])
 
         rast = bool(len(c) > 500)

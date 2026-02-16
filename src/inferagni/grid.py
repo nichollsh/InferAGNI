@@ -11,52 +11,59 @@ from .util import print_sep_min, undimen, varprops
 
 
 class Grid:
-    def __init__(self, data_dir: str | None = None):
+    def __init__(self, data_dir: str | None = None, emits: bool = False, profs: bool = False):
+
+        print("Loading data from disk...")
+        if not data_dir:
+            data_dir = os.path.join(os.path.dirname(__file__), "data")
+        data_dir = os.path.abspath(data_dir)
+        print(f"    Source: {data_dir}")
 
         # scalar data
         self._df_points = None  # Dataframe of the grid points (input)
         self._df_results = None  # Dataframe of the results (output)
         self._bounds = None  # Bounds on the input axes
         self.data = None  # Merged dataframe
-        self._load_from_dir(data_dir)  # load from CSVs
+        self._load_scalars(data_dir)  # load from CSVs
+
+        # emission spectra
+        self.emits_wl = None  # wavelengths
+        self.emits_fl = None  # fluxes
+        if emits:
+            self._load_emits(data_dir)  # load from CSV
 
         # atmosphere profiles
         self.profs = None  # load from NetCDF
-
-        # emission spectra
-        self.emits = None  # load from CSV
+        if profs:
+            self._load_profs(data_dir)  # load from NetCDF
 
         # -------------------------
         # interpolator for whole grid
         self._interp_dtype = np.float16
         self._interp_method = "linear"  # “linear”, “nearest”,   spline methods: “slinear”, “cubic”, “quintic” and “pchip”.
-        self._interp = None  # Instantiated later
+        self._interp = dict()  # Instantiated later
 
-    def _load_from_dir(self, data_dir: str | None):
-        """Load grid data from CSV files in the specified directory.
+    def _load_scalars(self, data_dir: str):
+        """Load grid scalars data from CSV files in the specified directory.
 
         Parameters
         -----------
-        - data_dir : str The directory containing the CSV files.
+        - data_dir : str, The directory containing the CSV files.
         """
 
-        print("Loading data from disk...")
-        if not data_dir:
-            data_dir = os.path.join(os.path.dirname(__file__), "data")
-        data_dir = os.path.abspath(data_dir)
-        print(f"Data directory: {data_dir}")
+        print("Loading grid of scalar quantities")
 
         # Read the grid point definition file
-        self._df_points = pd.read_csv(os.path.join(data_dir, "nogit_points.csv"), sep=",")
+        self._df_points = pd.read_csv(os.path.join(data_dir, "consolidated_table.csv"), sep=",")
 
         # Read the consolidated results file
-        self._df_results = pd.read_csv(os.path.join(data_dir, "nogit_table.csv"), sep=",")
+        self._df_results = pd.read_csv(os.path.join(data_dir, "gridpoints.csv"), sep=",")
 
         # Merge the dataframes on index
         self.data = pd.merge(self._df_points, self._df_results, on="index")
 
         # Calculate grid size
-        print(f"Loaded grid of size: {len(self.data)}")
+        print(f"Loaded scalar-grid of size: {len(self.data)}")
 
         # Define input and output variables
         self.input_keys = list(self._df_points.keys())
@@ -97,6 +104,33 @@ class Grid:
         print("Output vars: ")
         print(wrapper.fill(", ".join(self.output_keys)))
         print(print_sep_min)
+
+    def _load_emits(self, data_dir: str):
+        """Read fluxes table"""
+
+        print("Loading emission spectra")
+        emit_dat = np.loadtxt(
+            os.path.join(data_dir, "consolidated_emits.csv"),
+            dtype=float,
+            delimiter=",",
+            converters=lambda x: 0 if x == "index" else float(x),
+        )
+        self.emits_wl = np.array(emit_dat[0, 1:])
+        self.emits_fl = np.array(emit_dat[1:, 1:])
+
+    def _load_profs(self, data_dir: str):
+        """Read atmosphere profiles"""
+
+        import netCDF4 as nc
+
+        ds = nc.Dataset(os.path.join(data_dir, "consolidated_profs.nc"))
+
+        self.profs = dict()
+        self.profs["t"] = np.array(ds["t"][:, :], copy=True, dtype=float)
+        self.profs["p"] = np.array(ds["p"][:, :], copy=True, dtype=float)
+        self.profs["r"] = np.array(ds["r"][:, :], copy=True, dtype=float)
+
+        ds.close()
 
     def show_inputs(self):
         """Print the unique values of each input variable in the grid."""
@@ -236,17 +270,19 @@ class Grid:
 
         print(f"Interpolator initialised on variable '{vkey}'")
 
-    def interp_eval(self, loc, method: str | None = None):
+    def interp_eval(self, loc: dict | list, vkey: str = "r_phot", method: str | None = None):
         """Evalulate the interpolator at a single location in parameter space.
 
         Parameters
         ------------
         - loc : dict or list, The location to evaluate the `vkey` at.
+        - vkey : str, The variable to interpolate.
+        - method : str | None, The interpolation method to use. Uses default method if None.
         """
 
         # Check interpolate is setup
-        if not self._interp:
-            raise RuntimeError("Cannot interpolate; interpolator has not been initialised!")
+        if (vkey not in self._interp) or (not self._interp[vkey]):
+            raise RuntimeError(f"Cannot interpolate; interpolator on '{vkey}' not initialised!")
 
         # parse method
         if method:
@@ -263,4 +299,4 @@ class Grid:
             raise ValueError(f"Location must be a dict or an array, got {type(loc)}")
 
         # Evaluate and return
-        return float(self._interp(eval_loc, method=eval_method)[0])
+        return float(self._interp[vkey](eval_loc, method=eval_method)[0])
