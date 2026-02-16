@@ -54,10 +54,10 @@ class Grid:
         print("Loading grid of scalar quantities")
 
         # Read the grid point definition file
-        self._df_points = pd.read_csv(os.path.join(data_dir, "consolidated_table.csv"), sep=",")
+        self._df_points = pd.read_csv(os.path.join(data_dir, "gridpoints.csv"), sep=",")
 
         # Read the consolidated results file
-        self._df_results = pd.read_csv(os.path.join(data_dir, "gridpoints.csv"), sep=",")
+        self._df_results = pd.read_csv(os.path.join(data_dir, "consolidated_table.csv"), sep=",")
 
         # Merge the dataframes on index
         self.data = pd.merge(self._df_points, self._df_results, on="index")
@@ -117,11 +117,14 @@ class Grid:
         )
         self.emits_wl = np.array(emit_dat[0, 1:])
         self.emits_fl = np.array(emit_dat[1:, 1:])
+        print("    done")
 
     def _load_profs(self, data_dir: str):
         """Read atmosphere profiles"""
 
         import netCDF4 as nc
+
+        print("Loading atmosphere profiles")
 
         ds = nc.Dataset(os.path.join(data_dir, "consolidated_profs.nc"))
 
@@ -131,6 +134,8 @@ class Grid:
         self.profs["r"] = np.array(ds["r"][:, :], copy=True, dtype=float)
 
         ds.close()
+
+        print("    done")
 
     def show_inputs(self):
         """Print the unique values of each input variable in the grid."""
