@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from cmcrameri import cm
 from copy import deepcopy
+
 import numpy as np
+from cmcrameri import cm
 
 # Physical constants (SI units)
 Gconst = 6.6743e-11
@@ -14,19 +15,27 @@ bar = 1e5  # Pa
 S_earth = 1361.0
 
 # Other constants
-print_sep_min:str = '-'*50
-print_sep_maj:str = '='*50
+print_sep_min: str = "-" * 50
+print_sep_maj: str = "=" * 50
 
-class GridVar():
-    def __init__(self,scale,log,label,cmap):
+
+# Get closest value
+def getclose(arr, val):
+    iclose = np.argmin(np.abs(np.array(arr) - val))
+    return float(arr[iclose])
+
+
+class GridVar:
+    def __init__(self, scale, log, label, cmap):
         self.scale = float(scale)
-        self.log   = bool(log)
+        self.log = bool(log)
         self.label = str(label)
 
         if cmap:
-            self.cmap  = deepcopy(cmap)
+            self.cmap = deepcopy(cmap)
         else:
             self.cmap = deepcopy(cm.batlow)
+
 
 # scale factor, log axis true/false, unit string, colormap
 varprops = {
@@ -79,24 +88,24 @@ def undimen(arr, key):
     if key not in varprops.keys():
         raise KeyError(f"Unknown key {key}")
 
-    if isinstance(arr,list):
+    if isinstance(arr, list):
         arr = np.array(arr)
 
     # if varprops[key].log:
     #     return np.log10(arr*varprops[key].scale)
     # else:
-    return arr*varprops[key].scale
+    return arr * varprops[key].scale
+
 
 def redimen(arr, key):
 
     if key not in varprops.keys():
         raise KeyError(f"Unknown key {key}")
 
-    if isinstance(arr,list):
+    if isinstance(arr, list):
         arr = np.array(arr)
 
     # if varprops[key].log:
     #     return np.pow(10, arr/varprops[key].scale)
     # else:
-    return arr/varprops[key].scale
-
+    return arr / varprops[key].scale

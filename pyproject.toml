@@ -146,6 +146,7 @@ select = [
 ignore = [
     "E501", # Line too long
     "E741", # Ambiguous variable name
+    "E241",
 ]
 
 [tool.ruff.lint.isort]
@@ -153,5 +154,5 @@ known-first-party=["inferagni"]
 required-imports = ["from __future__ import annotations"]
 
 [tool.ruff.format]
-quote-style = "single"
+quote-style = "double"
 indent-style = "space"

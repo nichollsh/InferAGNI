@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-__version__ = '26.02.12'
+__version__ = "26.02.12"
 
-import inferagni.grid
-import inferagni.cli
-import inferagni.util
-import inferagni.plot
-import inferagni.retrieve
+import inferagni.cli as cli
+import inferagni.grid as grid
+import inferagni.plot as plot
+import inferagni.retrieve as retrieve
+import inferagni.util as util
 
-__all__ = ['grid', 'cli', 'util', 'plot', 'retrieve']
+__all__ = ["util", "grid", "cli", "plot", "retrieve"]
