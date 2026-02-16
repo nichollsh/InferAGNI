@@ -7,6 +7,8 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+AGNI
+AGNI/
 .Python
 build/
 develop-eggs/
@@ -217,6 +219,9 @@ __marimo__/
 __pycache__
 !output/.gitkeep
 nogit_*
+*.pdf
+*.png
+*.jpg
 
 # From Read the Docs
 ####################
@@ -243,6 +248,7 @@ ipython_config.py
 __pycache__/
 *.py[cod]
 *$py.class
+downloads-for-exoatlas
 
 # C extensions
 *.so

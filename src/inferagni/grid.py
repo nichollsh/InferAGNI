@@ -9,14 +9,13 @@ from .util import varprops, undimen, print_sep_min
 
 
 class Grid:
-    def __init__(self, data_dir):
+    def __init__(self, data_dir:str|None=None):
 
         # scalar data
         self._df_points = None          # Dataframe of the grid points (input)
         self._df_results = None         # Dataframe of the results (output)
         self._bounds = None             # Bounds on the input axes
         self.data = None                # Merged dataframe
-
         self._load_from_dir(data_dir)  # load from CSVs
 
 
@@ -32,7 +31,7 @@ class Grid:
         self._interp_method = "linear"    # “linear”, “nearest”,   spline methods: “slinear”, “cubic”, “quintic” and “pchip”.
         self._interp = None  # Instantiated later
 
-    def _load_from_dir(self, data_dir):
+    def _load_from_dir(self, data_dir:str|None):
         """Load grid data from CSV files in the specified directory.
 
         Parameters
@@ -41,6 +40,9 @@ class Grid:
         """
 
         print('Loading data from disk...')
+        if not data_dir:
+            data_dir = os.path.join(os.path.dirname(__file__),"data")
+        data_dir = os.path.abspath(data_dir)
         print(f'Data directory: {data_dir}')
 
         # Read the grid point definition file
@@ -190,7 +192,7 @@ class Grid:
         return itp_x, itp_y, itp_z
 
     def interp_init(self, vkey: str = 'r_phot'):
-        """Instantiate a regular interpolator on the whole grid's data.
+        """Instantiate a regular-grid interpolator of `vkey` the whole parameter space.
 
         Parameters
         -----------
@@ -224,11 +226,11 @@ class Grid:
         v_g = np.reshape(v, xyz_g[0].shape)
 
         # instantiate regular-grid interpolator
-        self._interp = RegularGridInterpolator(xyz, v_g,
-                                            fill_value=None, bounds_error=False,
-                                            method=self._interp_method)
+        self._interp[vkey] = RegularGridInterpolator(xyz, v_g,
+                                                        fill_value=None, bounds_error=False,
+                                                        method=self._interp_method)
 
-        print("Interpolator created")
+        print(f"Interpolator initialised on variable '{vkey}'")
 
     def interp_eval(self,loc,method:str|None=None):
         """Evalulate the interpolator at a single location in parameter space.

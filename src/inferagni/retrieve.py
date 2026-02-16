@@ -12,7 +12,7 @@ def log_prior(theta, gr:Grid):
         return 0.0  # Log(1)
     return -np.inf  # Log(0) outside the grid
 
-def log_likelihood(theta, obs_data, obs_err, gr:Grid):
+def log_likelihood(theta:list, obs_data:dict, obs_err:list, gr:Grid):
     """
     theta: Current N-dimensional parameter set proposed by MCMC.
     obs_data: The measured values of the observables.
