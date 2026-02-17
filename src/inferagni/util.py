@@ -85,7 +85,7 @@ varprops = {
 # fmt: on
 
 
-def undimen(arr, key:str):
+def undimen(arr, key: str):
     """Return the un-dimensionalised form of an array"""
 
     if key not in varprops.keys():
