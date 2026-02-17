@@ -23,7 +23,7 @@ def get_obs(name:str) -> dict:
         print(f"Planet '{name}' not found in database")
         return None
 
-    obs_pl = {"_name":name}
+    obs_pl = dict() #{"_name":name}
     for key,lk in (
         ("r_phot",          "radius"),
         ("mass_tot",        "mass"),

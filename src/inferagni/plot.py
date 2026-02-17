@@ -10,47 +10,11 @@ from cmcrameri import cm
 
 from .grid import Grid
 from .planets import exoplanets, solarsys
-from .util import GridVar, R_earth, getclose, varprops
+from .util import R_earth, getclose, varprops
 
 DPI = 120
 
 
-def latexify(s):
-    latex = ""
-    for c in s:
-        if c.isnumeric():
-            latex += f"$_{c}$"
-        else:
-            latex += c
-    return latex
-
-
-gas_colors = {
-    # H rich
-    "H2": "#008C01",
-    "H2O": "#027FB1",
-    "CH4": "#C720DD",
-    # C rich
-    "CO": "#D1AC02",
-    # S rich
-    "H2S": "#640deb",
-    "S2": "#FF8FA1",
-    "SO2": "#00008B",
-    # O rich
-    "OH": "#00ffd4",
-    "CO2": "#D24901",
-    "O2": "#00ff00",
-    # N rich
-    "NO2": "#eb0076",
-    "H2SO4": "#46eba4",
-    "N2": "#870036",
-    "NH3": "#675200",
-}
-
-gases = list(gas_colors.keys())
-for gas in gases:
-    latex = latexify(gas)
-    varprops[f"vmr_{gas}"] = GridVar(1, True, f"{latex} VMR", cm.glasgow)
 
 # ZENG+19 MASS RADIUS CURVES
 #    key = iron mass fraction
@@ -239,7 +203,7 @@ def massrad_2d(
     echo_gridpoints=False,
     vmr_min=1e-4,
     show=True,
-    save="massrad2d.pdf",
+    save="massrad_2d.pdf",
 ):
     # copy dataframe
     subdata = deepcopy(gr.data)
@@ -622,5 +586,5 @@ def massrad_2d(
     if show:
         print("    Showing plot GUI")
         fig.show()
-        
+
     return fig

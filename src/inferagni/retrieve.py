@@ -88,25 +88,25 @@ def run(
     n_procs: int | None = None,
     burnin: int = 200,
     thin: int = 10,
-
-    extra_keys:list = ["t_surf","μ_phot"]
+    extra_keys:list = []
 ) -> tuple:
 
     """Executes the MCMC retrieval"""
 
-    extra_keys = list(extra_keys)
+    global obs_glo, gr_glo
+
+    # Extra keys should not include the parameters, but should include the observables
+    extra_keys = list( (set(extra_keys) | set(obs.keys())) - set(gr.input_keys))
 
     # Initialising interpolators on original grid object
-    global obs_glo
     obs_glo = {k:v for k,v in obs.items() if not k[0]=="_"}
-    print(f"Prepare interpolators for observables: {list(obs_glo.keys())}")
-    for k in set(list(obs_glo.keys())+extra_keys):
+    print(f"Prepare interpolators")
+    for k in set(extra_keys)|set(gr.input_keys):
         gr.interp_init(vkey=k, reinit=False)
     print(" ")
 
     # Copy grid into module's global scope. Required for multiprocessing to work.
     print("Copy grid object into module global scope")
-    global gr_glo
     gr_glo = deepcopy(gr)
 
     # Check number of CPUs
@@ -144,7 +144,6 @@ def run(
     )
     print("Initial guess:")
     for i, k in enumerate(gr_glo.input_keys):
-        # pos[:, i] = undimen(pos[:, i], k)
         print(
             f"    {k:18s}: {' log10' if varprops[k].log else 'linear'} [{np.amin(pos[:, i]):10g}, {np.amax(pos[:, i]):10g}] w/ {n_walkers} walkers"
         )
