@@ -86,8 +86,15 @@ def run(
 ) -> emcee.EnsembleSampler:
     """Executes the MCMC retrieval"""
 
-    # Copy grid into global scope. Required for multiprocessing to work.
-    global gr_glo, obs_glo
+    # Initialising interpolators on original grid object
+    print("Prepare interpolators")
+    for k in obs.keys():
+        gr.interp_init(vkey=k, reinit=False)
+    print(" ")
+
+    # Copy grid into module's global scope. Required for multiprocessing to work.
+    print("Copy grid object into module global scope")
+    global gr_glo
     gr_glo = deepcopy(gr)
     obs_cpy = deepcopy(obs)
 
@@ -100,12 +107,6 @@ def run(
     if n_procs >= n_cpus:
         print("Warning: decreased n_procs from {n_procs} to {n_cpus}")
         n_procs = n_cpus
-
-    # Initialising interpolators on original grid object
-    print("Prepare interpolators")
-    for k in obs_cpy.keys():
-        gr.interp_init(vkey=k, reinit=False)
-    print(" ")
 
     # Need at least 2*ndim walkers for system to be well-conditioned
     n_dim = len(gr_glo.input_keys)
@@ -133,7 +134,7 @@ def run(
     )
     print("Initial guess:")
     for i, k in enumerate(gr_glo.input_keys):
-        pos[:, i] = undimen(pos[:, i], k)
+        # pos[:, i] = undimen(pos[:, i], k)
         print(
             f"    {k:18s}: range [{np.amin(pos[:, i]):10g}, {np.amax(pos[:, i]):10g}] w/ {n_walkers} walkers (log10={varprops[k].log})"
         )
