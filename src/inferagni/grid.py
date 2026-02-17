@@ -262,6 +262,7 @@ class Grid:
         subdata = deepcopy(self.data)
         subdata[subdata["succ"] < 0.0] = 0.0  # failed cases
 
+        # organise parameters
         xyz = []
         print(f"Creating interpolator on {vkey}")
         print("    Organising data")
@@ -281,6 +282,10 @@ class Grid:
 
         # meshgrid the axes
         xyz_g = np.meshgrid(*xyz, indexing="ij")
+
+        # check that data has this key
+        if not vkey in self.data.columns:
+            raise KeyError(f"Cannot find {vkey} in input dataset. Typo?")
 
         # arrange value to be interpolated (usually r_phot)
         v = undimen(self.data[vkey].values, vkey)
