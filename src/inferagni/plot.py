@@ -10,8 +10,9 @@ from cmcrameri import cm
 
 from .grid import Grid
 from .planets import exoplanets, solarsys
-from .util import R_earth, getclose, varprops
+from .util import R_earth, getclose, varprops, GridVar
 
+DPI=120
 
 def latexify(s):
     latex = ""
@@ -48,7 +49,7 @@ gas_colors = {
 gases = list(gas_colors.keys())
 for gas in gases:
     latex = latexify(gas)
-    varprops[f"vmr_{gas}"] = [1, True, f"{latex} VMR", cm.glasgow]
+    varprops[f"vmr_{gas}"] = GridVar(1, True, f"{latex} VMR", cm.glasgow)
 
 # ZENG+19 MASS RADIUS CURVES
 #    key = iron mass fraction
@@ -293,7 +294,7 @@ def massrad_2d(
     # create figure object
     figscale = 1.2
     fig, ax = plt.subplots(
-        1, 1, figsize=(5 * figscale, 4 * figscale), dpi=200, num="Mass-Radius 2D"
+        1, 1, figsize=(5 * figscale, 4 * figscale), dpi=DPI, num="Mass-Radius 2D"
     )
 
     # configure...
