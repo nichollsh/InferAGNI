@@ -10,9 +10,10 @@ from cmcrameri import cm
 
 from .grid import Grid
 from .planets import exoplanets, solarsys
-from .util import R_earth, getclose, varprops, GridVar
+from .util import GridVar, R_earth, getclose, varprops
 
-DPI=120
+DPI = 120
+
 
 def latexify(s):
     latex = ""

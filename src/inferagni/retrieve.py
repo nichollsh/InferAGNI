@@ -1,17 +1,19 @@
 from __future__ import annotations
 
-import emcee
-import numpy as np
 import multiprocessing as mp
 from copy import deepcopy
 
+import emcee
+import numpy as np
+
 from .grid import Grid
-from .util import varprops, undimen
+from .util import undimen, varprops
 
 global gr_glo
-gr_glo:Grid = None
+gr_glo: Grid = None
 
-def log_prior(theta:list):
+
+def log_prior(theta: list):
     """Uniform prior: checks if parameters are within grid boundaries."""
 
     global gr_glo
@@ -21,7 +23,7 @@ def log_prior(theta:list):
     return -np.inf  # Log(0) outside the grid
 
 
-def log_likelihood(theta: list, obs:dict) -> float:
+def log_likelihood(theta: list, obs: dict) -> float:
     """Logarithm of the likelihood function
 
     Parameters
@@ -36,9 +38,9 @@ def log_likelihood(theta: list, obs:dict) -> float:
 
     # Transform coordinates from log-scaled to physical
     theta_eval = deepcopy(theta)
-    for i,k in enumerate(gr_glo.input_keys):
+    for i, k in enumerate(gr_glo.input_keys):
         if varprops[k].log:
-            theta_eval[i] = 10**(theta_eval[i])
+            theta_eval[i] = 10 ** (theta_eval[i])
 
     for k in obs.keys():
         # Organise the observation values
@@ -53,12 +55,12 @@ def log_likelihood(theta: list, obs:dict) -> float:
         # Standard Gaussian Log-Likelihood
         # ln L = -0.5 * sum((data - model)^2 / error^2)
         diff = obs_val - model_val
-        chi_sq += (diff/obs_err)**2
+        chi_sq += (diff / obs_err) ** 2
 
     return -0.5 * chi_sq
 
 
-def log_probability(theta:list, obs:dict):
+def log_probability(theta: list, obs: dict):
     """Logarithm of the combined posterior: Prior + Likelihood
 
     Parameters
@@ -75,8 +77,13 @@ def log_probability(theta:list, obs:dict):
     return lp + log_likelihood(theta, obs)
 
 
-def run(gr:Grid, obs:dict, n_steps: int = 4000,
-            n_walkers: int|None = None,  n_procs: int|None = None) -> emcee.EnsembleSampler:
+def run(
+    gr: Grid,
+    obs: dict,
+    n_steps: int = 4000,
+    n_walkers: int | None = None,
+    n_procs: int | None = None,
+) -> emcee.EnsembleSampler:
     """Executes the MCMC retrieval"""
 
     # Copy grid into global scope. Required for multiprocessing to work.
@@ -89,12 +96,12 @@ def run(gr:Grid, obs:dict, n_steps: int = 4000,
     if not n_procs:
         n_procs = n_cpus - 1
     else:
-        n_procs = max(1,int(n_procs))
+        n_procs = max(1, int(n_procs))
     if n_procs >= n_cpus:
         print("Warning: decreased n_procs from {n_procs} to {n_cpus}")
         n_procs = n_cpus
 
-     # Initialising interpolators on original grid object
+    # Initialising interpolators on original grid object
     print("Prepare interpolators")
     for k in obs_cpy.keys():
         gr.interp_init(vkey=k, reinit=False)
@@ -110,13 +117,13 @@ def run(gr:Grid, obs:dict, n_steps: int = 4000,
 
     # Check observables (values,errors)
     print("Observables:")
-    for i,k in enumerate(obs_cpy.keys()):
+    for i, k in enumerate(obs_cpy.keys()):
         print(f"    {k:18s}: {obs_cpy[k][0]:10g} ± {obs_cpy[k][1]:10g}")
         if varprops[k].log:
             obs_cpy[k] = np.log10(obs_cpy[k])
 
     # Convert bounds to logarithmic values where appropriate
-    for i,k in enumerate(gr_glo.input_keys):
+    for i, k in enumerate(gr_glo.input_keys):
         if varprops[k].log:
             gr_glo.bounds[i] = np.log10(gr_glo.bounds[i])
 
@@ -126,17 +133,18 @@ def run(gr:Grid, obs:dict, n_steps: int = 4000,
     )
     print("Initial guess:")
     for i, k in enumerate(gr_glo.input_keys):
-        pos[:,i] = undimen(pos[:,i],k)
-        print(f"    {k:18s}: range [{np.amin(pos[:, i]):10g}, {np.amax(pos[:, i]):10g}] w/ {n_walkers} walkers (log10={varprops[k].log})")
+        pos[:, i] = undimen(pos[:, i], k)
+        print(
+            f"    {k:18s}: range [{np.amin(pos[:, i]):10g}, {np.amax(pos[:, i]):10g}] w/ {n_walkers} walkers (log10={varprops[k].log})"
+        )
 
     # Run the sampler
     print(f"Running {n_steps} steps...")
     with mp.Pool(processes=n_procs) as pool:
         sampler = emcee.EnsembleSampler(
-                        n_walkers, n_dim,
-                        log_probability, args=(obs_cpy,) , pool=pool)
+            n_walkers, n_dim, log_probability, args=(obs_cpy,), pool=pool
+        )
         sampler.run_mcmc(pos, n_steps, progress=True)
-
 
     print("Done")
 

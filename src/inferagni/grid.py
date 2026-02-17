@@ -1,19 +1,23 @@
 from __future__ import annotations
 
 import os
-from textwrap import TextWrapper
 from copy import deepcopy
+from textwrap import TextWrapper
 
 import numpy as np
 import pandas as pd
 
-from .util import print_sep_min, undimen, varprops, bar, R_earth
+from .util import print_sep_min, undimen, varprops
 
 
 class Grid:
-    def __init__(self, data_dir: str | None = None,
-                    emits: bool = True, profs: bool = True,
-                    observed_params: list = []):
+    def __init__(
+        self,
+        data_dir: str | None = None,
+        emits: bool = True,
+        profs: bool = True,
+        observed_params: list = [],
+    ):
 
         print("Loading data from disk...")
         if not data_dir:
@@ -22,7 +26,7 @@ class Grid:
         print(f"    Source: {data_dir}")
 
         # scalar data (stored as scaled values)
-        self.observed_params=set(observed_params)
+        self.observed_params = set(observed_params)
         self._df_points = None  # Dataframe of the grid points (input)
         self._df_results = None  # Dataframe of the results (output)
         self.bounds = None  # Bounds on the input axes
@@ -63,7 +67,9 @@ class Grid:
         self._df_points = pd.read_csv(os.path.join(data_dir, "gridpoints.csv"), sep=",")
 
         # Read the consolidated results file
-        self._df_results = pd.read_csv(os.path.join(data_dir, "consolidated_table.csv"), sep=",")
+        self._df_results = pd.read_csv(
+            os.path.join(data_dir, "consolidated_table.csv"), sep=","
+        )
 
         # Merge the dataframes on index
         self.data = pd.merge(self._df_points, self._df_results, on="index")
@@ -108,9 +114,7 @@ class Grid:
         print("    Input vars:")
         for i, k in enumerate(self.input_keys):
             print(f"      {k:18s}: range [{self.bounds[i][0]}, {self.bounds[i][1]}]")
-        wrapper = TextWrapper(
-            width=45, initial_indent=" " * 6, subsequent_indent=" " * 6
-        )
+        wrapper = TextWrapper(width=45, initial_indent=" " * 6, subsequent_indent=" " * 6)
         print("    Output vars: ")
         print(wrapper.fill(", ".join(self.output_keys)))
 
@@ -289,7 +293,7 @@ class Grid:
             xyz, v_g, fill_value=None, bounds_error=False, method=self._interp_method
         )
 
-        print(f"    Interpolator ready")
+        print("    Interpolator ready")
 
     def interp_eval(self, loc: dict | list, vkey: str = "r_phot", method: str | None = None):
         """Evalulate the interpolator at a single location in parameter space.
@@ -320,8 +324,8 @@ class Grid:
             raise ValueError(f"Location must be a dict or an array, got {type(loc)}")
 
         # scale inputs
-        for i,k in enumerate(self.input_keys):
-            eval_loc[i] = undimen(eval_loc[i],k)
+        for i, k in enumerate(self.input_keys):
+            eval_loc[i] = undimen(eval_loc[i], k)
 
         # Evaluate and return the scaled value
         return float(self._interp[vkey](eval_loc, method=eval_method)[0])
