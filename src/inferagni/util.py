@@ -66,10 +66,10 @@ varprops = {
 
     "r_bound"       : GridVar(1/R_earth, False  ,r"$R_b$ [$R_\oplus$]", cm.batlow),
 
-    "r_phot"        : GridVar(1/R_earth, True  , r"Planet radius, $R_p$ [$R_\oplus$]",  cm.batlow),
+    "r_phot"        : GridVar(1/R_earth, False  , r"Planet radius, $R_p$ [$R_\oplus$]",  cm.batlow),
     "μ_phot"        : GridVar(1e3,       False  ,r"$\mu_p$ [g/mol]",    cm.hawaii_r),
     "t_phot"        : GridVar(1,         False  ,r"Photo. temperature, $T_p$ [K]",         cm.glasgow),
-    "g_phot"        : GridVar(1,         False  ,r"Photo. gravity, $g_p$ [m$^2$/s]",    cm.devon_r),
+    "g_phot"        : GridVar(1,         True  ,r"Photo. gravity, $g_p$ [m$^2$/s]",    cm.devon_r),
 
     "Kzz_max"       : GridVar(1e4,       True   ,r"Maximum $K_{zz}$ [cm$^2$/s]",cm.acton),
     "conv_pbot"     : GridVar(1e-5,      True   ,r"Convection $p_c^b$ [bar]",      cm.acton),
@@ -78,13 +78,14 @@ varprops = {
     "flux_loss"     : GridVar(1.0,       False  ,r"$F_\text{loss}$ [W/m$^2$]", cm.roma),
     "succ"          : GridVar(1,         False  ,"Success", cm.roma), # succ=1, fail=-1
     "worker"        : GridVar(1,         False  ,"Worker", cm.nuuk),
+    "index"         : GridVar(1,         False  ,"Index", cm.batlow),
 
     "dom_gas"       : GridVar(1,         False, "_dominant_gas", None)
 }
 # fmt: on
 
 
-def undimen(arr, key):
+def undimen(arr, key:str):
     """Return the un-dimensionalised form of an array"""
 
     if key not in varprops.keys():

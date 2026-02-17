@@ -7,7 +7,7 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 
-from .util import print_sep_min, undimen, varprops
+from .util import print_sep_min, undimen, varprops, bar, R_earth
 
 
 class Grid:
@@ -21,12 +21,11 @@ class Grid:
         data_dir = os.path.abspath(data_dir)
         print(f"    Source: {data_dir}")
 
-        # scalar data (stored as unscaled values - same as CSV)
+        # scalar data (stored as scaled values)
         self.observed_params=set(observed_params)
         self._df_points = None  # Dataframe of the grid points (input)
         self._df_results = None  # Dataframe of the results (output)
-        self._bounds = None  # Bounds on the input axes
-        self._bounds_log = None # ^, but with log-scaling for some params, as appropriate
+        self.bounds = None  # Bounds on the input axes
         self.data = None  # Merged dataframe
         self._load_scalars(data_dir)  # load from CSVs
 
@@ -101,14 +100,14 @@ class Grid:
             self.output_keys.append(k)
 
         # Store the bounds on each dimension
-        self._bounds = np.array(
+        self.bounds = np.array(
             [(self.data[k].min(), self.data[k].max()) for k in self.input_keys]
         )
 
         # Print info
         print("    Input vars:")
         for i, k in enumerate(self.input_keys):
-            print(f"      {k:18s}: range [{self._bounds[i][0]}, {self._bounds[i][1]}]")
+            print(f"      {k:18s}: range [{self.bounds[i][0]}, {self.bounds[i][1]}]")
         wrapper = TextWrapper(
             width=45, initial_indent=" " * 6, subsequent_indent=" " * 6
         )
@@ -240,7 +239,7 @@ class Grid:
         # Return the grid for plotting
         return itp_x, itp_y, itp_z
 
-    def interp_init(self, vkey: str = "r_phot"):
+    def interp_init(self, vkey: str = "r_phot", reinit: bool = False):
         """Instantiate a regular-grid interpolator of `vkey` the whole parameter space.
 
         Parameters
@@ -250,12 +249,18 @@ class Grid:
 
         from scipy.interpolate import RegularGridInterpolator
 
+        # Check if already initialised
+        if (vkey in self._interp) and (self._interp[vkey]) and not reinit:
+            print(f"Interpolator already initialised on {vkey}")
+            return
+
         # gather data
         subdata = deepcopy(self.data)
         subdata[subdata["succ"] < 0.0] = 0.0  # failed cases
 
         xyz = []
-        print("Organise interpolator input data:")
+        print(f"Creating interpolator on {vkey}")
+        print("    Organising data")
         grid_points = self.get_points()
         for i, gp in enumerate(grid_points):
             k = self.input_keys[i]
@@ -279,11 +284,12 @@ class Grid:
         v_g = np.reshape(v, xyz_g[0].shape)
 
         # instantiate regular-grid interpolator
+        print("    Creating interpolator")
         self._interp[vkey] = RegularGridInterpolator(
             xyz, v_g, fill_value=None, bounds_error=False, method=self._interp_method
         )
 
-        print(f"Interpolator initialised on variable '{vkey}'")
+        print(f"    Interpolator ready")
 
     def interp_eval(self, loc: dict | list, vkey: str = "r_phot", method: str | None = None):
         """Evalulate the interpolator at a single location in parameter space.
