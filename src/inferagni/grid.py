@@ -7,7 +7,7 @@ from textwrap import TextWrapper
 import numpy as np
 import pandas as pd
 
-from .util import print_sep_min, undimen, varprops
+from .util import print_sep_min, undimen, varprops, calc_scaleheight
 
 
 class Grid:
@@ -16,8 +16,9 @@ class Grid:
         data_dir: str | None = None,
         emits: bool = True,
         profs: bool = True,
-        observed_params: list = [],
     ):
+
+        self._dtype = np.float32
 
         print("Loading data from disk...")
         if not data_dir:
@@ -26,7 +27,6 @@ class Grid:
         print(f"    Source: {data_dir}")
 
         # scalar data (stored as scaled values)
-        self.observed_params = set(observed_params)
         self._df_points = None  # Dataframe of the grid points (input)
         self._df_results = None  # Dataframe of the results (output)
         self.bounds = None  # Bounds on the input axes
@@ -49,7 +49,6 @@ class Grid:
 
         # -------------------------
         # interpolators for the whole grid
-        self._interp_dtype = np.float16
         self._interp_method = "linear"  # “linear”, “nearest”,   spline methods: “slinear”, “cubic”, “quintic” and “pchip”.
         self._interp = dict()  # Instantiated later
 
@@ -64,15 +63,32 @@ class Grid:
         print("Loading grid of scalar quantities")
 
         # Read the grid point definition file
-        self._df_points = pd.read_csv(os.path.join(data_dir, "gridpoints.csv"), sep=",")
+        self._df_points = pd.read_csv(
+            os.path.join(data_dir, "gridpoints.csv"), sep=",", dtype=self._dtype
+        )
 
         # Read the consolidated results file
         self._df_results = pd.read_csv(
-            os.path.join(data_dir, "consolidated_table.csv"), sep=","
+            os.path.join(data_dir, "consolidated_table.csv"), sep=",", dtype=self._dtype
         )
+
+        # Derive some observables
+        self._df_results["H_phot"] = calc_scaleheight(
+                                            self._df_results["t_phot"],
+                                               self._df_results["μ_phot"],
+                                               self._df_results["g_phot"])
 
         # Merge the dataframes on index
         self.data = pd.merge(self._df_points, self._df_results, on="index")
+
+        # Ensure all quantities have real values
+        for k in self.data.columns:
+            amax = 1e30
+            if varprops[k].log:
+                amin = 1e-30
+            else:
+                amin = -amax
+            self.data.loc[:,k] = np.clip(self.data[k].values, amin, amax)[:]
 
         # Calculate grid size
         print(f"    Grid size: {len(self.data)} points")
@@ -100,10 +116,6 @@ class Grid:
                 change_counts[k] = int(np.sum(arr[1:] != arr[:-1]))
         self.input_keys.sort(key=lambda kk: change_counts.get(kk, 0))
 
-        # Make these parameters behave as observables
-        for k in set(self.observed_params):
-            self.input_keys.remove(k)
-            self.output_keys.append(k)
 
         # Store the bounds on each dimension
         self.bounds = np.array(
@@ -128,8 +140,8 @@ class Grid:
             delimiter=",",
             converters=lambda x: 0 if x == "index" else float(x),
         )
-        self.emits_wl = np.array(emit_dat[0, 1:])
-        self.emits_fl = np.array(emit_dat[1:, 1:])
+        self.emits_wl = np.array(emit_dat[0, 1:] , copy=True, dtype=self._dtype)
+        self.emits_fl = np.array(emit_dat[1:, 1:], copy=True, dtype=self._dtype)
         print("    done")
 
     def _load_profs(self, data_dir: str):
@@ -142,9 +154,9 @@ class Grid:
         ds = nc.Dataset(os.path.join(data_dir, "consolidated_profs.nc"))
 
         self.profs = dict()
-        self.profs["t"] = np.array(ds["t"][:, :], copy=True, dtype=float)
-        self.profs["p"] = np.array(ds["p"][:, :], copy=True, dtype=float)
-        self.profs["r"] = np.array(ds["r"][:, :], copy=True, dtype=float)
+        self.profs["t"] = np.array(ds["t"][:, :], copy=True, dtype=self._dtype)
+        self.profs["p"] = np.array(ds["p"][:, :], copy=True, dtype=self._dtype)
+        self.profs["r"] = np.array(ds["r"][:, :], copy=True, dtype=self._dtype)
 
         ds.close()
 
@@ -270,7 +282,7 @@ class Grid:
             k = self.input_keys[i]
 
             # scale data
-            xx = np.array(gp, copy=True, dtype=self._interp_dtype)
+            xx = np.array(gp, copy=True, dtype=self._dtype)
             xx = undimen(gp, k)
 
             # store
@@ -286,17 +298,14 @@ class Grid:
         if not vkey in self.data.columns:
             raise KeyError(f"Cannot find {vkey} in input dataset. Typo?")
 
-        # arrange value to be interpolated (usually )
+        # arrange value to be interpolated
         v = undimen(self.data[vkey].values, vkey)
-        v = np.array(v, copy=True, dtype=self._interp_dtype)
-        # if varprops[vkey].log:
-        #     v[mask] = 1e-30
-        # else:
-        #     v[mask] = 0.0
+        v = np.array(v, copy=True, dtype=self._dtype)
         v_g = np.reshape(v, xyz_g[0].shape)
+        # print(f"    min {np.amin(v_g)}, max {np.amax(v_g)}")
 
         # instantiate regular-grid interpolator
-        print("    Creating interpolator")
+        # print("    Creating interpolator")
         self._interp[vkey] = RegularGridInterpolator(
             xyz, v_g, fill_value=None, bounds_error=False, method=self._interp_method
         )
