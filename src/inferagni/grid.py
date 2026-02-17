@@ -258,9 +258,8 @@ class Grid:
             print(f"Interpolator already initialised on {vkey}")
             return
 
-        # gather data
-        subdata = deepcopy(self.data)
-        subdata[subdata["succ"] < 0.0] = 0.0  # failed cases
+        # failed cases
+        mask = self.data["succ"] < 0.0
 
         # organise parameters
         xyz = []
@@ -283,13 +282,17 @@ class Grid:
         # meshgrid the axes
         xyz_g = np.meshgrid(*xyz, indexing="ij")
 
-        # check that data has this key
+        # check that data has the interpolant
         if not vkey in self.data.columns:
             raise KeyError(f"Cannot find {vkey} in input dataset. Typo?")
 
-        # arrange value to be interpolated (usually r_phot)
+        # arrange value to be interpolated (usually )
         v = undimen(self.data[vkey].values, vkey)
         v = np.array(v, copy=True, dtype=self._interp_dtype)
+        # if varprops[vkey].log:
+        #     v[mask] = 1e-30
+        # else:
+        #     v[mask] = 0.0
         v_g = np.reshape(v, xyz_g[0].shape)
 
         # instantiate regular-grid interpolator
