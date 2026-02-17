@@ -3,14 +3,19 @@ from __future__ import annotations
 import multiprocessing as mp
 from copy import deepcopy
 
+import corner
+import matplotlib.pyplot as plt
+
+import contextlib
 import emcee
 import numpy as np
 
 from .grid import Grid
-from .util import undimen, varprops
+from .util import varprops
 
-global gr_glo
+global gr_glo, obs_glo
 gr_glo: Grid = None
+obs_glo: dict = None
 
 
 def log_prior(theta: list):
@@ -23,16 +28,15 @@ def log_prior(theta: list):
     return -np.inf  # Log(0) outside the grid
 
 
-def log_likelihood(theta: list, obs: dict) -> float:
+def log_likelihood(theta: list) -> float:
     """Logarithm of the likelihood function
 
     Parameters
     ------------
     - theta : list, Current N-dimensional parameter set proposed by MCMC.
-    - obs : dict, The measured values and errors of the observables.
     """
 
-    global gr_glo
+    global gr_glo, obs_glo
 
     chi_sq = 0.0
 
@@ -42,10 +46,10 @@ def log_likelihood(theta: list, obs: dict) -> float:
         if varprops[k].log:
             theta_eval[i] = 10 ** (theta_eval[i])
 
-    for k in obs.keys():
+    for k in obs_glo.keys():
         # Organise the observation values
-        obs_val = obs[k][0]
-        obs_err = obs[k][1]
+        obs_val = obs_glo[k][0]
+        obs_err = obs_glo[k][1]
 
         # Evaluate the model (returns scaled value)
         model_val = gr_glo.interp_eval(theta_eval, k)
@@ -60,35 +64,43 @@ def log_likelihood(theta: list, obs: dict) -> float:
     return -0.5 * chi_sq
 
 
-def log_probability(theta: list, obs: dict):
+def log_probability(theta: list):
     """Logarithm of the combined posterior: Prior + Likelihood
 
     Parameters
     ------------
     - theta : list, Current N-dimensional parameter set proposed by MCMC.
-    - obs : dict, The measured values and errors of the observables.
     """
 
-    global gr_glo
+    global gr_glo, obs_glo
 
     lp = log_prior(theta)
     if not np.isfinite(lp):
         return -np.inf
-    return lp + log_likelihood(theta, obs)
+    return lp + log_likelihood(theta)
 
 
 def run(
     gr: Grid,
     obs: dict,
-    n_steps: int = 4000,
+    n_steps: int | None = None,
     n_walkers: int | None = None,
     n_procs: int | None = None,
-) -> emcee.EnsembleSampler:
+    burnin: int = 200,
+    thin: int = 10,
+
+    extra_keys:list = ["t_surf","μ_phot"]
+) -> tuple:
+
     """Executes the MCMC retrieval"""
 
+    extra_keys = list(extra_keys)
+
     # Initialising interpolators on original grid object
-    print("Prepare interpolators")
-    for k in obs.keys():
+    global obs_glo
+    obs_glo = {k:v for k,v in obs.items() if not k[0]=="_"}
+    print(f"Prepare interpolators for observables: {list(obs_glo.keys())}")
+    for k in set(list(obs_glo.keys())+extra_keys):
         gr.interp_init(vkey=k, reinit=False)
     print(" ")
 
@@ -96,7 +108,6 @@ def run(
     print("Copy grid object into module global scope")
     global gr_glo
     gr_glo = deepcopy(gr)
-    obs_cpy = deepcopy(obs)
 
     # Check number of CPUs
     n_cpus = mp.cpu_count()
@@ -104,24 +115,23 @@ def run(
         n_procs = n_cpus - 1
     else:
         n_procs = max(1, int(n_procs))
-    if n_procs >= n_cpus:
-        print("Warning: decreased n_procs from {n_procs} to {n_cpus}")
-        n_procs = n_cpus
+    if n_procs > n_cpus:
+        print(f"Warning: n_procs {n_procs} is larger than n_cpus {n_cpus}")
 
     # Need at least 2*ndim walkers for system to be well-conditioned
     n_dim = len(gr_glo.input_keys)
     if not n_walkers:
-        n_walkers = int(n_dim * 3)
+        n_walkers = int(np.ceil(n_dim * 3))
     if n_walkers < n_dim * 2:
         raise ValueError(f"Need at ≥{n_dim * 2} walkers for {n_dim} system; got {n_walkers}")
-    print(f"Using {n_walkers} walkers and {n_procs} CPUs")
+    print(f"Spawning {n_walkers} walkers using {n_procs} processes")
 
     # Check observables (values,errors)
     print("Observables:")
-    for i, k in enumerate(obs_cpy.keys()):
-        print(f"    {k:18s}: {obs_cpy[k][0]:10g} ± {obs_cpy[k][1]:10g}")
+    for i, k in enumerate(obs_glo.keys()):
+        print(f"    {k:18s}: {obs_glo[k][0]:10g} ± {obs_glo[k][1]:<10g}")
         if varprops[k].log:
-            obs_cpy[k] = np.log10(obs_cpy[k])
+            obs_glo[k] = np.log10(obs_glo[k])
 
     # Convert bounds to logarithmic values where appropriate
     for i, k in enumerate(gr_glo.input_keys):
@@ -136,17 +146,139 @@ def run(
     for i, k in enumerate(gr_glo.input_keys):
         # pos[:, i] = undimen(pos[:, i], k)
         print(
-            f"    {k:18s}: range [{np.amin(pos[:, i]):10g}, {np.amax(pos[:, i]):10g}] w/ {n_walkers} walkers (log10={varprops[k].log})"
+            f"    {k:18s}: {' log10' if varprops[k].log else 'linear'} [{np.amin(pos[:, i]):10g}, {np.amax(pos[:, i]):10g}] w/ {n_walkers} walkers"
         )
+    print("")
 
     # Run the sampler
+    if not n_steps:
+        n_steps = 4000
+    n_steps = max(1,n_steps)
+    n_steps += burnin
     print(f"Running {n_steps} steps...")
+
     with mp.Pool(processes=n_procs) as pool:
         sampler = emcee.EnsembleSampler(
-            n_walkers, n_dim, log_probability, args=(obs_cpy,), pool=pool
+            n_walkers, n_dim, log_probability, pool=pool
         )
         sampler.run_mcmc(pos, n_steps, progress=True)
 
-    print("Done")
+    with contextlib.redirect_stderr(None):
+        tau = sampler.get_autocorr_time(quiet=True)
 
-    return sampler
+    print("    done")
+    print(" ")
+
+
+
+    # 1. Extract the flattened samples, discarding the initial burn-in period
+    samples = sampler.get_chain(discard=burnin, flat=True, thin=thin)
+    print(f"Discarded {burnin} burn-in samples and thinned by {thin}")
+    print(f"Samples: {samples.shape}, length {samples.size}")
+    print("")
+
+    # Convert results to physical values
+    for i,k in enumerate(gr_glo.input_keys):
+        if varprops[k].log:
+            samples[:,i] = 10**(samples[:,i])
+
+    print("    Quantity    :    Median         (Uncertainty)             Autocorrelation")
+    for i, key in enumerate(gr_glo.input_keys):
+        mcmc = np.percentile(samples[:, i], [16, 50, 84])
+        q = np.diff(mcmc)
+        print(f"{key:16s}: {mcmc[1]:10g}  (+ {q[1]:<10g}  - {q[0]:<10g})    {tau[i]:.4f}")
+    print("")
+
+    print(f"Postprocessing grid with extra keys: {extra_keys}")
+    output_samples = []
+    for i,sam in enumerate(samples):
+        output_samples.append([gr_glo.interp_eval(sam,vkey=k) for k in extra_keys])
+    all_samples = np.hstack([samples, output_samples])
+    all_keys = list(gr_glo.input_keys) + extra_keys
+
+    print("    done")
+
+    return all_keys, all_samples
+
+def plot_chain(samples:np.ndarray,  save:str=None, show:bool=False):
+
+    print(f"Plot retrieval chain with {samples.shape[0]} samples")
+
+    # Diagnostic plot: Check if walkers converged or are still wandering.
+    fig, axes = plt.subplots(len(gr_glo.input_keys), figsize=(10, 7), sharex=True)
+
+    for i,k in enumerate(gr_glo.input_keys):
+        ax = axes[i]
+        ax.plot(samples[:, i], color="k", alpha=0.2, lw=0.5)
+        ax.set_xlim(0, len(samples))
+        ax.set_title(varprops[k].label, fontsize=9)
+
+    axes[-1].set_xlabel("Step Number")
+
+    fig.tight_layout()
+    if save:
+        print(f"    Saving plot to '{save}'")
+        fig.savefig(save)
+    if show:
+        print("    Showing plot GUI")
+        plt.show()
+    else:
+        plt.close(fig)
+
+    return fig
+
+def plot_corner(keys:list, samples:np.ndarray, save:str=None, show:bool=False):
+
+    print(f"Plot retrieval corner with {samples.shape[0]} samples")
+
+    axes_truths = []
+    axes_scale  = []
+    axes_labels = []
+    for i,k in enumerate(keys):
+        try:
+            axes_truths.append(obs_glo[k][0])
+        except KeyError:
+            axes_truths.append(None)
+        axes_scale.append("log" if varprops[k].log else "linear")
+        axes_labels.append(varprops[k].label)
+
+    axes_range = gr_glo.bounds.tolist() + [0.99]*len(keys)
+    # print(axes_range)
+
+    # 2. Create the corner plot
+    fig = corner.corner(
+        samples,
+        labels=axes_labels,
+        quantiles=[0.16, 0.5, 0.84], # Shows 1-sigma boundaries
+        titles=[l+"\n" for l in axes_labels],
+        show_titles=True,
+        title_kwargs={"fontsize": 9},
+        label_kwargs={"fontsize": 9},
+        color="#1F2F3E",
+        axes_scale=axes_scale,
+        # range = axes_range,
+        truths = axes_truths,
+        truth_color = 'orangered'
+    )
+
+    # loop over all panels
+    ii = -1
+    for i in range(len(keys)):
+        for j in range(len(keys)):
+            ii += 1
+            if (keys[i] in obs_glo.keys()) or (keys[j] in obs_glo.keys()):
+                fig.axes[ii].set_facecolor('beige')
+
+    fig.tight_layout()
+    if save:
+        print(f"    Saving plot to '{save}'")
+        fig.savefig(save)
+
+    if show:
+        print("    Showing plot GUI")
+        plt.show()
+    else:
+        plt.close(fig)
+
+    return fig
+

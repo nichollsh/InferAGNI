@@ -621,5 +621,6 @@ def massrad_2d(
         fig.savefig(save)
     if show:
         print("    Showing plot GUI")
-        plt.show()
+        fig.show()
+        
     return fig
