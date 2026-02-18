@@ -105,6 +105,9 @@ def retrieve(
     from inferagni.util import print_sep_min
 
     obs = get_obs(planet_name)
+    if not obs:
+        return
+
     click.echo(print_sep_min)
     click.echo("")
 
