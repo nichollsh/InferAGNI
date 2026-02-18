@@ -7,7 +7,7 @@ from textwrap import TextWrapper
 import numpy as np
 import pandas as pd
 
-from .util import print_sep_min, undimen, varprops, calc_scaleheight
+from .util import calc_scaleheight, print_sep_min, undimen, varprops
 
 
 class Grid:
@@ -74,9 +74,8 @@ class Grid:
 
         # Derive some observables
         self._df_results["H_phot"] = calc_scaleheight(
-                                            self._df_results["t_phot"],
-                                               self._df_results["μ_phot"],
-                                               self._df_results["g_phot"])
+            self._df_results["t_phot"], self._df_results["μ_phot"], self._df_results["g_phot"]
+        )
 
         # Merge the dataframes on index
         self.data = pd.merge(self._df_points, self._df_results, on="index")
@@ -88,7 +87,7 @@ class Grid:
                 amin = 1e-30
             else:
                 amin = -amax
-            self.data.loc[:,k] = np.clip(self.data[k].values, amin, amax)[:]
+            self.data.loc[:, k] = np.clip(self.data[k].values, amin, amax)[:]
 
         # Calculate grid size
         print(f"    Grid size: {len(self.data)} points")
@@ -116,7 +115,6 @@ class Grid:
                 change_counts[k] = int(np.sum(arr[1:] != arr[:-1]))
         self.input_keys.sort(key=lambda kk: change_counts.get(kk, 0))
 
-
         # Store the bounds on each dimension
         self.bounds = np.array(
             [(self.data[k].min(), self.data[k].max()) for k in self.input_keys]
@@ -125,7 +123,7 @@ class Grid:
         # Print info
         print("    Input vars:")
         for i, k in enumerate(self.input_keys):
-            print(f"      {k:18s}: range [{self.bounds[i][0]}, {self.bounds[i][1]}]")
+            print(f"      {k:18s}: range [{self.bounds[i][0]:<10g}, {self.bounds[i][1]:<10g}]")
         wrapper = TextWrapper(width=45, initial_indent=" " * 6, subsequent_indent=" " * 6)
         print("    Output vars: ")
         print(wrapper.fill(", ".join(self.output_keys)))
@@ -140,7 +138,7 @@ class Grid:
             delimiter=",",
             converters=lambda x: 0 if x == "index" else float(x),
         )
-        self.emits_wl = np.array(emit_dat[0, 1:] , copy=True, dtype=self._dtype)
+        self.emits_wl = np.array(emit_dat[0, 1:], copy=True, dtype=self._dtype)
         self.emits_fl = np.array(emit_dat[1:, 1:], copy=True, dtype=self._dtype)
         print("    done")
 
@@ -271,7 +269,7 @@ class Grid:
             return
 
         # failed cases
-        mask = self.data["succ"] < 0.0
+        # mask = self.data["succ"] < 0.0
 
         # organise parameters
         xyz = []
@@ -295,7 +293,7 @@ class Grid:
         xyz_g = np.meshgrid(*xyz, indexing="ij")
 
         # check that data has the interpolant
-        if not vkey in self.data.columns:
+        if vkey not in self.data.columns:
             raise KeyError(f"Cannot find {vkey} in input dataset. Typo?")
 
         # arrange value to be interpolated

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
-import os
 import click
 
 from inferagni import __version__
@@ -16,6 +16,7 @@ output_option = click.option(
     default=Path.cwd(),
 )
 
+
 @click.group()
 @click.version_option(version=__version__)
 def cli():
@@ -23,8 +24,25 @@ def cli():
 
 
 # ----------------
+# 'helper' commands
+# ----------------
+
+
+@click.command()
+def listvars():
+    """List vars in grid"""
+
+    from inferagni.grid import Grid
+
+    Grid(emits=False, profs=False)  # this will print information about the vars
+
+
+cli.add_command(listvars)
+
+# ----------------
 # 'plot' command
 # ----------------
+
 
 @click.command()
 @output_option
@@ -48,10 +66,15 @@ def plot(outdir, zkey, controls):
     from inferagni.grid import Grid
     from inferagni.plot import massrad_2d
 
-    massrad_2d(Grid(emits=False, profs=False),
-               key1=zkey, key2=None, controls=controls_dict,
-               save=os.path.join(outdir,"massrad_2d.pdf"),
-               show=True)
+    massrad_2d(
+        Grid(emits=False, profs=False),
+        key1=zkey,
+        key2=None,
+        controls=controls_dict,
+        save=os.path.join(outdir, "massrad_2d.pdf"),
+        show=True,
+    )
+
 
 cli.add_command(plot)
 
@@ -65,7 +88,11 @@ cli.add_command(plot)
 @click.argument("planet_name", nargs=1)
 @click.argument("quantities", nargs=-1)
 @click.option("--steps", type=int)
-def infer(outdir:str, planet_name:str, quantities:list, steps:int=None):
+@click.option("--walkers", type=int)
+@click.option("--procs", type=int)
+def infer(
+    outdir: str, planet_name: str, quantities: list, steps=None, walkers=None, procs=None
+):
     """Infer some quantities for a named planet"""
 
     click.echo(f"Planet: {planet_name}")
@@ -73,16 +100,24 @@ def infer(outdir:str, planet_name:str, quantities:list, steps:int=None):
     click.echo(" ")
 
     from inferagni.grid import Grid
-    from inferagni.retrieve import run, plot_corner, plot_chain
     from inferagni.planets import get_obs
+    from inferagni.retrieve import plot_chain, plot_corner, run
 
     # run retrieval
     gr = Grid(emits=False, profs=False)
-    keys, samples = run(gr, get_obs(planet_name), extra_keys=quantities, n_steps=steps)
+    keys, samples = run(
+        gr,
+        get_obs(planet_name),
+        extra_keys=quantities,
+        n_steps=steps,
+        n_walkers=walkers,
+        n_procs=procs,
+    )
 
     # make plots
-    plot_chain(samples,save=os.path.join(outdir,"retrieve_chain.pdf"),show=False)
-    plot_corner(keys, samples,save=os.path.join(outdir,"retrieve_corner.pdf"),show=True)
+    plot_chain(samples, save=os.path.join(outdir, "retrieve_chain.pdf"), show=False)
+    plot_corner(keys, samples, save=os.path.join(outdir, "retrieve_corner.pdf"), show=True)
+
 
 cli.add_command(infer)
 

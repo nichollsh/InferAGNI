@@ -19,7 +19,8 @@ S_earth = 1361.0
 print_sep_min: str = "-" * 50
 print_sep_maj: str = "=" * 50
 
-def calc_scaleheight(t,mu,g):
+
+def calc_scaleheight(t, mu, g):
     return Rgas * t / (mu * g)
 
 
@@ -27,6 +28,7 @@ def calc_scaleheight(t,mu,g):
 def getclose(arr, val):
     iclose = np.argmin(np.abs(np.array(arr) - val))
     return float(arr[iclose])
+
 
 def latexify(s):
     latex = ""
@@ -125,6 +127,7 @@ gases = list(gas_colors.keys())
 for gas in gases:
     latex = latexify(gas)
     varprops[f"vmr_{gas}"] = GridVar(1, True, f"{latex} VMR", cm.glasgow)
+
 
 def undimen(arr, key: str):
     """Return the un-dimensionalised form of an array"""
