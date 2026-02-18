@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from .grid import Grid
-from .util import varprops
+from .util import varprops, print_sep_min
 
 global gr_glo, obs_glo
 gr_glo: Grid = None
@@ -112,7 +112,7 @@ def run(
         name_glo = obs["_name"]
     except KeyError:
         name_glo = "Unnamed planet"
-    obs_glo = {k: v for k, v in obs.items() if not k[0] == "_"}
+    obs_glo = {k: deepcopy(v) for k, v in obs.items() if not k[0] == "_"}
     extra_keys = list((set(extra_keys) | set(obs_glo.keys())) - set(gr.input_keys))
 
     # Initialising interpolators on original grid object
@@ -149,7 +149,8 @@ def run(
         else:
             print(f"    {k:16s}: {obs_val:10g} (+ {obs_err[0]:<10g} - {obs_err[1]:<10g})")
         if varprops[k].log:
-            obs_glo[k] = np.log10(obs_glo[k])
+            obs_glo[k][0] = np.log10(obs_glo[k][0])
+            obs_glo[k][1] = np.log10(obs_glo[k][1])
     print("")
 
     # Convert bounds to logarithmic values where appropriate
@@ -158,14 +159,26 @@ def run(
             gr_glo.bounds[i] = np.log10(gr_glo.bounds[i])
 
     # Randomly sample initial positions from the uniform prior (within grid bounds)
-    pos = np.random.uniform(
-        low=gr_glo.bounds[:, 0], high=gr_glo.bounds[:, 1], size=(n_walkers, n_dim)
-    )
+    theta_ini = []
     print("Initial guesses for parameters:")
     for i, k in enumerate(gr_glo.input_keys):
+
+        # centre guess around truth
+        if k in obs_glo.keys():
+            this_ini = np.random.normal(obs_glo[k][0], scale=np.abs(np.median(obs_glo[k][1])), size=n_walkers)
+
+        # otherwise use uniform guess
+        else:
+            this_ini = np.random.uniform(low=gr_glo.bounds[i,0], high=gr_glo.bounds[i,1], size=n_walkers)
+
+        this_ini = np.clip(this_ini, gr_glo.bounds[i,0], gr_glo.bounds[i,1])
+
         print(
-            f"    {k:16s}: {' log10' if varprops[k].log else 'linear'} [{np.amin(pos[:, i]):10g}, {np.amax(pos[:, i]):10g}] w/ {n_walkers} walkers"
+            f"    {k:16s}: {' log10' if varprops[k].log else 'linear'} [{np.amin(this_ini):10g}, {np.amax(this_ini):10g}] w/ {n_walkers} walkers"
         )
+
+        theta_ini.append(this_ini)
+    theta_ini = np.array(theta_ini, dtype=gr_glo._dtype).T
     print("")
 
     # Default values
@@ -181,11 +194,11 @@ def run(
     n_steps += n_burn
 
     # Run sampler
-    print(f"Performing {n_steps} steps with {n_walkers} walkers using {n_procs} processes")
-    print("Starting MCMC retrieval...")
+    print(f"Will do {n_steps} steps with {n_walkers} walkers using {n_procs} processes")
+    print("Running MCMC retrieval...")
     with mp.Pool(processes=n_procs) as pool:
         sampler = emcee.EnsembleSampler(n_walkers, n_dim, log_probability, pool=pool)
-        sampler.run_mcmc(pos, n_steps, progress=True)
+        sampler.run_mcmc(theta_ini, n_steps, progress=True)
 
     # Estimate autocorrelation
     with contextlib.redirect_stderr(None):
@@ -205,21 +218,26 @@ def run(
         if varprops[k].log:
             samples[:, i] = 10 ** (samples[:, i])
 
-    print("    Quantity    :    Median         (Uncertainty)             Autocorrelation")
-    for i, key in enumerate(gr_glo.input_keys):
-        mcmc = np.percentile(samples[:, i], [16, 50, 84])
-        q = np.diff(mcmc)
-        print(f"{key:16s}: {mcmc[1]:10g}  (+ {q[1]:<10g}  - {q[0]:<10g})    {tau[i]:.4f}")
-    print("")
-
     print(f"Postprocessing grid with extra keys: {extra_keys}")
     output_samples = []
     for i, sam in enumerate(samples):
         output_samples.append([gr_glo.interp_eval(sam, vkey=k) for k in extra_keys])
     all_samples = np.hstack([samples, output_samples])
     all_keys = list(gr_glo.input_keys) + extra_keys
-
     print("    done")
+    print("")
+
+    print("    Quantity    :    Median         (Uncertainty)             Autocorrelation")
+    for i, key in enumerate(all_keys):
+        mcmc = np.percentile(all_samples[:, i], [16, 50, 84])
+        q = np.diff(mcmc)
+        info_row = f"{key:16s}: {mcmc[1]:10g}  (+ {q[1]:<10g}  - {q[0]:<10g})"
+        if i < len(tau):
+            info_row += f"    {tau[i]:.4f}"
+        print(info_row)
+    print(print_sep_min)
+    print("")
+
 
     return all_keys, all_samples
 
@@ -238,6 +256,15 @@ def plot_chain(samples: np.ndarray, save: str = None, show: bool = False):
         ax.plot(samples[:, i], color="k", alpha=0.2, lw=0.5)
         ax.set_xlim(0, len(samples))
         ax.set_title(varprops[k].label, fontsize=9)
+        if varprops[k].log:
+            ax.set_yscale("log")
+
+        if k in obs_glo.keys():
+            if varprops[k].log:
+                tru = 10**obs_glo[k][0]
+            else:
+                tru = obs_glo[k][0]
+            ax.axhline(y=tru, color='orangered')
 
     axes[-1].set_xlabel("Step Number")
 
@@ -263,16 +290,23 @@ def plot_corner(keys: list, samples: np.ndarray, save: str = None, show: bool = 
     axes_truths = []
     axes_scale = []
     axes_labels = []
+    axes_range = []
     for i, k in enumerate(keys):
+        ax_min, ax_max = np.amin(samples[:,i])/1.1, np.amax(samples[:,i])*1.1
         try:
-            axes_truths.append(obs_glo[k][0])
+            if varprops[k].log:
+                axes_truths.append(10**obs_glo[k][0])
+            else:
+                axes_truths.append(obs_glo[k][0])
+            ax_min = min(ax_min, axes_truths[i])
+            ax_max = max(ax_max, axes_truths[i])
         except KeyError:
             axes_truths.append(None)
+
+        axes_range.append([ax_min, ax_max])
+
         axes_scale.append("log" if varprops[k].log else "linear")
         axes_labels.append(varprops[k].label)
-
-    # axes_range = gr_glo.bounds.tolist() + [0.99]*len(keys)
-    # print(axes_range)
 
     # 2. Create the corner plot
     fig = plt.figure(figsize=(11, 9))
@@ -287,7 +321,7 @@ def plot_corner(keys: list, samples: np.ndarray, save: str = None, show: bool = 
         label_kwargs={"fontsize": 9, "labelpad": 7.0},
         color="#1F2F3E",
         axes_scale=axes_scale,
-        # range = axes_range,
+        range = axes_range,
         truths=axes_truths,
         truth_color="orangered",
     )
