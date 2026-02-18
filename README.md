@@ -3,8 +3,8 @@ Inferring planet properties using AGNI as a static structure model.
 
 ## Get started
 1. Install Python 3.12 and a distribution of conda
-2. In Bash: `pip install -e .`
-3. In Python: `import inferagni as ia`
+2. `pip install -e .`
+3. `inferagni infer "L 98-59 d"`
 
 ### Quick links
 * AGNI repo: https://github.com/nichollsh/AGNI/

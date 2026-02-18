@@ -18,17 +18,17 @@ def get_obs(name: str) -> dict:
 
     if name in exoplanets.name():
         pl = exoplanets[name]
-        print(f"Getting data for exoplanet '{name}'")
+        print(f"Found observations for exoplanet '{name}'")
 
     elif name in solarsys.name():
         pl = solarsys[name]
-        print(f"Getting data for solar system planet '{name}'")
+        print(f"Found observations for solar system planet '{name}'")
 
     else:
         print(f"Planet '{name}' not found in database")
         return None
 
-    obs_pl = dict()  # {"_name":name}
+    obs_pl = {"_name": name}
     for key, lk in (
         ("r_phot", "radius"),
         ("mass_tot", "mass"),
@@ -38,5 +38,8 @@ def get_obs(name: str) -> dict:
         val = [getattr(pl, lk)(), getattr(pl, lk + "_uncertainty")()]
         obs_pl[key] = [float(v.value[0]) for v in val]
 
-    print("    " + str(obs_pl))
+    for k, v in obs_pl.items():
+        if k[0] == "_":
+            continue
+        print(f"    {k:16s}: {v[0]:10g} ± {v[1]:<10g}")
     return obs_pl
