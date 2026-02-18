@@ -6,14 +6,12 @@ import matplotlib as mpl
 import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 import numpy as np
-from cmcrameri import cm
 
 from .grid import Grid
 from .planets import exoplanets, solarsys
 from .util import R_earth, getclose, varprops
 
 DPI = 120
-
 
 
 # ZENG+19 MASS RADIUS CURVES

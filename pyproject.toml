@@ -149,7 +149,8 @@ ignore = [
     "E741", # Ambiguous variable name
     "E241",
     "E231",
-    "E203"
+    "E203",
+    "E402"
 ]
 
 [tool.ruff.lint.isort]
