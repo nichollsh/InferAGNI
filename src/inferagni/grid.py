@@ -123,7 +123,7 @@ class Grid:
         # Print info
         print("    Input vars:")
         for i, k in enumerate(self.input_keys):
-            print(f"      {k:18s}: range [{self.bounds[i][0]:<10g}, {self.bounds[i][1]:<10g}]")
+            print(f"      {k:16s}: range [{self.bounds[i][0]:<10g}, {self.bounds[i][1]:<10g}]")
         wrapper = TextWrapper(width=45, initial_indent=" " * 6, subsequent_indent=" " * 6)
         print("    Output vars: ")
         print(wrapper.fill(", ".join(self.output_keys)))
@@ -163,7 +163,7 @@ class Grid:
     def show_inputs(self):
         """Print the unique values of each input variable in the grid."""
         for key in self.input_keys:
-            print(f"{key:18s}\n\t- {np.unique(self.data[key].values)}")
+            print(f"{key:16s}\n\t- {np.unique(self.data[key].values)}")
 
     def get_points(self):
         """Get the values of the grid axes"""

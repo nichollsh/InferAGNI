@@ -99,8 +99,8 @@ def run(
     n_steps: int | None = None,
     n_walkers: int | None = None,
     n_procs: int | None = None,
-    burnin: int = 200,
-    thin: int = 10,
+    n_burn: int | None = None,
+    thin: int | None = None,
     extra_keys: list = [],
 ) -> tuple:
     """Executes the MCMC retrieval"""
@@ -108,7 +108,10 @@ def run(
     global obs_glo, gr_glo, name_glo
 
     # Extra keys should not include the parameters, but should include the observables
-    name_glo = getattr(obs, "_name", "Unnamed planet")
+    try:
+        name_glo = obs["_name"]
+    except KeyError:
+        name_glo = "Unnamed planet"
     obs_glo = {k: v for k, v in obs.items() if not k[0] == "_"}
     extra_keys = list((set(extra_keys) | set(obs_glo.keys())) - set(gr.input_keys))
 
@@ -137,15 +140,14 @@ def run(
         n_walkers = int(np.ceil(n_dim * 3))
     if n_walkers < n_dim * 2:
         raise ValueError(f"Need at ≥{n_dim * 2} walkers for {n_dim} system; got {n_walkers}")
-    print(f"Spawning {n_walkers} walkers using {n_procs} processes")
 
     # Check observables (values,errors)
     print("Observables:")
     for k, (obs_val, obs_err) in obs_glo.items():
         if np.isscalar(obs_err):
-            print(f"    {k:18s}: {obs_val:10g} ± {obs_err:<10g}")
+            print(f"    {k:16s}: {obs_val:10g} ± {obs_err:<10g}")
         else:
-            print(f"    {k:18s}: {obs_val:10g} (+ {obs_err[0]:<10g} - {obs_err[1]:<10g})")
+            print(f"    {k:16s}: {obs_val:10g} (+ {obs_err[0]:<10g} - {obs_err[1]:<10g})")
         if varprops[k].log:
             obs_glo[k] = np.log10(obs_glo[k])
     print("")
@@ -159,24 +161,33 @@ def run(
     pos = np.random.uniform(
         low=gr_glo.bounds[:, 0], high=gr_glo.bounds[:, 1], size=(n_walkers, n_dim)
     )
-    print("Initial guess:")
+    print("Initial guesses for parameters:")
     for i, k in enumerate(gr_glo.input_keys):
         print(
-            f"    {k:18s}: {' log10' if varprops[k].log else 'linear'} [{np.amin(pos[:, i]):10g}, {np.amax(pos[:, i]):10g}] w/ {n_walkers} walkers"
+            f"    {k:16s}: {' log10' if varprops[k].log else 'linear'} [{np.amin(pos[:, i]):10g}, {np.amax(pos[:, i]):10g}] w/ {n_walkers} walkers"
         )
     print("")
 
-    # Run the sampler
+    # Default values
+    if not thin:
+        thin = 10
+    thin = max(1, thin)
+    if not n_burn:
+        n_burn = 200
+    n_burn = max(1, n_burn)
     if not n_steps:
         n_steps = 4000
     n_steps = max(1, n_steps)
-    n_steps += burnin
-    print(f"Running {n_steps} steps...")
+    n_steps += n_burn
 
+    # Run sampler
+    print(f"Performing {n_steps} steps with {n_walkers} walkers using {n_procs} processes")
+    print("Starting MCMC retrieval...")
     with mp.Pool(processes=n_procs) as pool:
         sampler = emcee.EnsembleSampler(n_walkers, n_dim, log_probability, pool=pool)
         sampler.run_mcmc(pos, n_steps, progress=True)
 
+    # Estimate autocorrelation
     with contextlib.redirect_stderr(None):
         tau = sampler.get_autocorr_time(quiet=True)
 
@@ -184,8 +195,8 @@ def run(
     print(" ")
 
     # 1. Extract the flattened samples, discarding the initial burn-in period
-    samples = sampler.get_chain(discard=burnin, flat=True, thin=thin)
-    print(f"Discarded {burnin} burn-in samples and thinned by {thin}")
+    samples = sampler.get_chain(discard=n_burn, flat=True, thin=thin)
+    print(f"Discarded {n_burn} burn-in samples and thinned by {thin}")
     print(f"Samples: {samples.shape}, length {samples.size}")
     print("")
 
@@ -264,14 +275,16 @@ def plot_corner(keys: list, samples: np.ndarray, save: str = None, show: bool = 
     # print(axes_range)
 
     # 2. Create the corner plot
+    fig = plt.figure(figsize=(11, 9))
     fig = corner.corner(
         samples,
+        fig=fig,
         labels=axes_labels,
         quantiles=[0.16, 0.5, 0.84],  # Shows 1-sigma boundaries
         titles=[l + "\n" for l in axes_labels],
         show_titles=True,
         title_kwargs={"fontsize": 9},
-        label_kwargs={"fontsize": 9},
+        label_kwargs={"fontsize": 9, "labelpad": 7.0},
         color="#1F2F3E",
         axes_scale=axes_scale,
         # range = axes_range,
@@ -287,12 +300,17 @@ def plot_corner(keys: list, samples: np.ndarray, save: str = None, show: bool = 
             if (keys[i] in obs_glo.keys()) or (keys[j] in obs_glo.keys()):
                 fig.axes[ii].set_facecolor("beige")
 
+    # tick fontsize
+    for ax in fig.axes:
+        ax.tick_params(axis="both", which="major", labelsize=8)
+        ax.tick_params(axis="both", which="minor", labelsize=8)
+
     # annotate on figure
     text = "Retrieval corner plot\n"
     text += f"{name_glo}\n"
-    text += f"{samples.size[0]} samples\n"
+    text += f"{samples.shape[0]} samples\n"
     fig.text(
-        0.6,
+        0.8,
         0.8,
         text,
         fontsize=16,

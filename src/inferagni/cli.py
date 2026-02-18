@@ -79,7 +79,7 @@ def plot(outdir, zkey, controls):
 cli.add_command(plot)
 
 # ----------------
-# 'infer' command
+# 'retrieve' command
 # ----------------
 
 
@@ -90,7 +90,7 @@ cli.add_command(plot)
 @click.option("--steps", type=int)
 @click.option("--walkers", type=int)
 @click.option("--procs", type=int)
-def infer(
+def retrieve(
     outdir: str, planet_name: str, quantities: list, steps=None, walkers=None, procs=None
 ):
     """Infer some quantities for a named planet"""
@@ -102,12 +102,17 @@ def infer(
     from inferagni.grid import Grid
     from inferagni.planets import get_obs
     from inferagni.retrieve import plot_chain, plot_corner, run
+    from inferagni.util import print_sep_min
+
+    obs = get_obs(planet_name)
+    click.echo(print_sep_min)
+    click.echo("")
 
     # run retrieval
     gr = Grid(emits=False, profs=False)
     keys, samples = run(
         gr,
-        get_obs(planet_name),
+        obs,
         extra_keys=quantities,
         n_steps=steps,
         n_walkers=walkers,
@@ -119,7 +124,7 @@ def infer(
     plot_corner(keys, samples, save=os.path.join(outdir, "retrieve_corner.pdf"), show=True)
 
 
-cli.add_command(infer)
+cli.add_command(retrieve)
 
 if __name__ == "__main__":
     cli()
