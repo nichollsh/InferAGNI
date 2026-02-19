@@ -227,6 +227,7 @@ downloads-for-exoatlas
 exoatlas-data
 src/inferagni/data/*
 !src/inferagni/data/readme.txt
+!src/inferagni/data/wolf2018*.csv
 
 # From Read the Docs
 ####################
