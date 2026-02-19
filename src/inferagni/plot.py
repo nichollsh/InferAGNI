@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import os
 from copy import deepcopy
 
 import matplotlib as mpl
 import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 
 from .grid import Grid
 from .planets import exoplanets, solarsys
@@ -185,7 +185,8 @@ zeng_irn = [
 ]
 zeng[1.0] = np.array(zeng_irn).T
 
-def _load_melting_data(data_dir:str|None=None):
+
+def _load_melting_data(data_dir: str | None = None):
     """Load melting curves from files"""
 
     if not data_dir:
@@ -193,16 +194,18 @@ def _load_melting_data(data_dir:str|None=None):
     data_dir = os.path.abspath(data_dir)
 
     meltcurves = {}
-    for cur in ("solidus","liquidus"):
-        fpath = os.path.join(data_dir,f"wolf2018_{cur}.csv")
-        p,t = np.loadtxt(fpath,delimiter=',').T
+    for cur in ("solidus", "liquidus"):
+        fpath = os.path.join(data_dir, f"wolf2018_{cur}.csv")
+        p, t = np.loadtxt(fpath, delimiter=",").T
 
         mask = np.argsort(p)
-        p = p[mask] / 1e5 # to bar
+        p = p[mask] / 1e5  # to bar
         t = t[mask]
 
-        meltcurves[cur] = (p,t)
+        meltcurves[cur] = (p, t)
     return meltcurves
+
+
 meltcurves = _load_melting_data()
 
 
