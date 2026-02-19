@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 __version__ = "26.02.19"
+__uri__ = "https://github.com/nichollsh/InferAGNI"
+__author__ = "Harrison Nicholls"
+__email__ = "harrison.nicholls@ast.cam.ac.uk"
+__license__ = "GPLv3"
 
 import inferagni.cli as cli
 import inferagni.grid as grid
