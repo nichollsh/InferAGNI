@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__version__ = "26.02.12"
+__version__ = "26.02.19"
 
 import inferagni.cli as cli
 import inferagni.grid as grid
