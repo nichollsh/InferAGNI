@@ -8,15 +8,14 @@ import contextlib
 import multiprocessing as mp
 from copy import deepcopy
 
-import pandas as pd
-
 import corner
 import emcee
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 from .grid import Grid
-from .util import varprops, print_sep_min, redimen
+from .util import print_sep_min, redimen, varprops
 
 global gr_glo, obs_glo
 gr_glo: Grid = None
@@ -164,16 +163,19 @@ def run(
     theta_ini = []
     print("Initial guesses for parameters:")
     for i, k in enumerate(gr_glo.input_keys):
-
         # centre guess around truth
         if k in obs_glo.keys():
-            this_ini = np.random.normal(obs_glo[k][0], scale=np.abs(np.median(obs_glo[k][1])), size=n_walkers)
+            this_ini = np.random.normal(
+                obs_glo[k][0], scale=np.abs(np.median(obs_glo[k][1])), size=n_walkers
+            )
 
         # otherwise use uniform guess
         else:
-            this_ini = np.random.uniform(low=gr_glo.bounds[i,0], high=gr_glo.bounds[i,1], size=n_walkers)
+            this_ini = np.random.uniform(
+                low=gr_glo.bounds[i, 0], high=gr_glo.bounds[i, 1], size=n_walkers
+            )
 
-        this_ini = np.clip(this_ini, gr_glo.bounds[i,0], gr_glo.bounds[i,1])
+        this_ini = np.clip(this_ini, gr_glo.bounds[i, 0], gr_glo.bounds[i, 1])
 
         print(
             f"    {k:16s}: {' log10' if varprops[k].log else 'linear'} [{np.amin(this_ini):10g}, {np.amax(this_ini):10g}] w/ {n_walkers} walkers"
@@ -191,7 +193,7 @@ def run(
         n_steps = 4000
     n_steps = max(1, n_steps)
     if not n_burn:
-        n_burn = max(200, int(n_steps*0.15))
+        n_burn = max(200, int(n_steps * 0.15))
     n_burn = max(1, n_burn)
     n_steps += n_burn
 
@@ -240,11 +242,10 @@ def run(
     print(print_sep_min)
     print("")
 
-
     return all_keys, all_samples
 
 
-def write_csv(keys: list, samples:np.ndarray, fpath:str):
+def write_csv(keys: list, samples: np.ndarray, fpath: str):
 
     global gr_glo, obs_glo, name_glo
 
@@ -252,28 +253,28 @@ def write_csv(keys: list, samples:np.ndarray, fpath:str):
 
     # convert back to original units
     samples_dimen = []
-    for i,k in enumerate(keys):
-        samples_dimen.append(redimen(samples[:,i],k))
+    for i, k in enumerate(keys):
+        samples_dimen.append(redimen(samples[:, i], k))
     samples_dimen = np.array(samples_dimen).T
 
     truth = []
     for k in obs_glo.keys():
         if varprops[k].log:
-            tru = 10**obs_glo[k][0]
+            tru = 10 ** obs_glo[k][0]
         else:
             tru = obs_glo[k][0]
-        truth.append(f"{k}={redimen(tru,k)}")
+        truth.append(f"{k}={redimen(tru, k)}")
 
     # construct dataframe and save to csv
-    df = pd.DataFrame(samples_dimen,columns=keys)
+    df = pd.DataFrame(samples_dimen, columns=keys)
 
     # header information
-    header = f"Samples from MCMC retrieval. Len={samples.shape[0]}. Truth: {", ".join(truth)}"
+    header = f"Samples from MCMC retrieval. Len={samples.shape[0]}. Truth: {', '.join(truth)}"
 
     # Write file
-    with open(fpath,'w') as hdl:
+    with open(fpath, "w") as hdl:
         hdl.write(f"# {header} \n")
-        df.to_csv(hdl,sep=',',index=False)
+        df.to_csv(hdl, sep=",", index=False)
 
     print("    done")
     return fpath
@@ -298,17 +299,17 @@ def plot_chain(samples: np.ndarray, save: str = None, show: bool = False):
 
         if k in obs_glo.keys():
             if varprops[k].log:
-                tru = 10**obs_glo[k][0]
+                tru = 10 ** obs_glo[k][0]
             else:
                 tru = obs_glo[k][0]
-            ax.axhline(y=tru, color='orangered')
+            ax.axhline(y=tru, color="orangered")
 
     axes[-1].set_xlabel("Step Number")
 
     fig.tight_layout()
     if save:
         print(f"    Saving plot to '{save}'")
-        fig.savefig(save, bbox_inches='tight')
+        fig.savefig(save, bbox_inches="tight")
     if show:
         print("    Showing plot GUI")
         plt.show()
@@ -322,7 +323,6 @@ def plot_corner(keys: list, samples: np.ndarray, save: str = None, show: bool = 
 
     global gr_glo, obs_glo, name_glo
 
-
     print(f"Plot retrieval corner from {samples.shape[0]} samples")
 
     axes_truths = []
@@ -330,10 +330,10 @@ def plot_corner(keys: list, samples: np.ndarray, save: str = None, show: bool = 
     axes_labels = []
     axes_range = []
     for i, k in enumerate(keys):
-        ax_min, ax_max = np.amin(samples[:,i]), np.amax(samples[:,i])
+        ax_min, ax_max = np.amin(samples[:, i]), np.amax(samples[:, i])
         try:
             if varprops[k].log:
-                axes_truths.append(10**obs_glo[k][0])
+                axes_truths.append(10 ** obs_glo[k][0])
             else:
                 axes_truths.append(obs_glo[k][0])
             ax_min = min(ax_min, axes_truths[i])
@@ -341,7 +341,7 @@ def plot_corner(keys: list, samples: np.ndarray, save: str = None, show: bool = 
         except KeyError:
             axes_truths.append(None)
 
-        axes_range.append([ax_min/1.15, ax_max*1.15])
+        axes_range.append([ax_min / 1.15, ax_max * 1.15])
 
         axes_scale.append("log" if varprops[k].log else "linear")
         axes_labels.append(varprops[k].label)
@@ -359,7 +359,7 @@ def plot_corner(keys: list, samples: np.ndarray, save: str = None, show: bool = 
         label_kwargs={"fontsize": 9, "labelpad": 7.0},
         color="#1F2F3E",
         axes_scale=axes_scale,
-        range = axes_range,
+        range=axes_range,
         truths=axes_truths,
         truth_color="orangered",
     )
@@ -395,7 +395,7 @@ def plot_corner(keys: list, samples: np.ndarray, save: str = None, show: bool = 
     fig.subplots_adjust(hspace=0.012, wspace=0.012)
     if save:
         print(f"    Saving plot to '{save}'")
-        fig.savefig(save, bbox_inches='tight')
+        fig.savefig(save, bbox_inches="tight")
     if show:
         print("    Showing plot GUI")
         plt.show()
