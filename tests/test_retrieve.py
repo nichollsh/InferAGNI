@@ -4,12 +4,10 @@ import os
 from copy import deepcopy
 
 import numpy as np
-
 import pytest
 
+from inferagni import retrieve, util
 from inferagni.grid import Grid
-from inferagni import retrieve
-from inferagni import util
 
 
 @pytest.mark.integration

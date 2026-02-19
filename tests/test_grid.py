@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-
 import numpy as np
 import pytest
 
 from inferagni.grid import Grid
+
 
 @pytest.mark.unit
 def test_grid_basic_getpoints_and_interp():
