@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 # https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
 [project]
 name = "InferAGNI"
-version = "26.02.12"
+version = "26.02.19"
 description = "Infer planet properties using AGNI as a static structure model"
 readme = "README.md"
 requires-python = ">=3.12"
