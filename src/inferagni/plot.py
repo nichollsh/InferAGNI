@@ -6,6 +6,7 @@ import matplotlib as mpl
 import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 from .grid import Grid
 from .planets import exoplanets, solarsys
@@ -183,6 +184,26 @@ zeng_irn = [
     [127.3145, 2.2361],
 ]
 zeng[1.0] = np.array(zeng_irn).T
+
+def _load_melting_data(data_dir:str|None=None):
+    """Load melting curves from files"""
+
+    if not data_dir:
+        data_dir = os.path.join(os.path.dirname(__file__), "data")
+    data_dir = os.path.abspath(data_dir)
+
+    meltcurves = {}
+    for cur in ("solidus","liquidus"):
+        fpath = os.path.join(data_dir,f"wolf2018_{cur}.csv")
+        p,t = np.loadtxt(fpath,delimiter=',').T
+
+        mask = np.argsort(p)
+        p = p[mask] / 1e5 # to bar
+        t = t[mask]
+
+        meltcurves[cur] = (p,t)
+    return meltcurves
+meltcurves = _load_melting_data()
 
 
 left_align = ["T1", "L98-59"]
