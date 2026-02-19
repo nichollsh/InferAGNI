@@ -297,6 +297,8 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
+coverage.json
+cov.json
 *.cover
 *.py,cover
 .hypothesis/
