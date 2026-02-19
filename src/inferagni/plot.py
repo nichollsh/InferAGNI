@@ -580,7 +580,7 @@ def massrad_2d(
     fig.tight_layout()
     if save:
         print(f"    Saving plot to '{save}'")
-        fig.savefig(save, bbox_inches='tight')
+        fig.savefig(save, bbox_inches="tight")
     if show:
         print("    Showing plot GUI")
         fig.show()
