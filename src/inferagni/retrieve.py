@@ -8,18 +8,20 @@ import contextlib
 import multiprocessing as mp
 from copy import deepcopy
 
+import pandas as pd
+
 import corner
 import emcee
 import matplotlib.pyplot as plt
 import numpy as np
 
 from .grid import Grid
-from .util import varprops, print_sep_min
+from .util import varprops, print_sep_min, redimen
 
 global gr_glo, obs_glo
 gr_glo: Grid = None
 obs_glo: dict = None
-name_glo: str = "Unnamed planet"
+name_glo: str = "Unnamed_planet"
 
 
 def log_prior(theta: list):
@@ -111,7 +113,7 @@ def run(
     try:
         name_glo = obs["_name"]
     except KeyError:
-        name_glo = "Unnamed planet"
+        name_glo = "Unnamed_planet"
     obs_glo = {k: deepcopy(v) for k, v in obs.items() if not k[0] == "_"}
     extra_keys = list((set(extra_keys) | set(obs_glo.keys())) - set(gr.input_keys))
 
@@ -185,12 +187,12 @@ def run(
     if not thin:
         thin = 10
     thin = max(1, thin)
-    if not n_burn:
-        n_burn = 200
-    n_burn = max(1, n_burn)
     if not n_steps:
         n_steps = 4000
     n_steps = max(1, n_steps)
+    if not n_burn:
+        n_burn = max(200, int(n_steps*0.15))
+    n_burn = max(1, n_burn)
     n_steps += n_burn
 
     # Run sampler
@@ -242,6 +244,41 @@ def run(
     return all_keys, all_samples
 
 
+def write_csv(keys: list, samples:np.ndarray, fpath:str):
+
+    global gr_glo, obs_glo, name_glo
+
+    print(f"Writing samples to '{fpath}'")
+
+    # convert back to original units
+    samples_dimen = []
+    for i,k in enumerate(keys):
+        samples_dimen.append(redimen(samples[:,i],k))
+    samples_dimen = np.array(samples_dimen).T
+
+    truth = []
+    for k in obs_glo.keys():
+        if varprops[k].log:
+            tru = 10**obs_glo[k][0]
+        else:
+            tru = obs_glo[k][0]
+        truth.append(f"{k}={redimen(tru,k)}")
+
+    # construct dataframe and save to csv
+    df = pd.DataFrame(samples_dimen,columns=keys)
+
+    # header information
+    header = f"Samples from MCMC retrieval. Len={samples.shape[0]}. Truth: {", ".join(truth)}"
+
+    # Write file
+    with open(fpath,'w') as hdl:
+        hdl.write(f"# {header} \n")
+        df.to_csv(hdl,sep=',',index=False)
+
+    print("    done")
+    return fpath
+
+
 def plot_chain(samples: np.ndarray, save: str = None, show: bool = False):
 
     global gr_glo, obs_glo, name_glo
@@ -271,7 +308,7 @@ def plot_chain(samples: np.ndarray, save: str = None, show: bool = False):
     fig.tight_layout()
     if save:
         print(f"    Saving plot to '{save}'")
-        fig.savefig(save)
+        fig.savefig(save, bbox_inches='tight')
     if show:
         print("    Showing plot GUI")
         plt.show()
@@ -285,14 +322,15 @@ def plot_corner(keys: list, samples: np.ndarray, save: str = None, show: bool = 
 
     global gr_glo, obs_glo, name_glo
 
-    print(f"Plot retrieval corner with {samples.shape[0]} samples")
+
+    print(f"Plot retrieval corner from {samples.shape[0]} samples")
 
     axes_truths = []
     axes_scale = []
     axes_labels = []
     axes_range = []
     for i, k in enumerate(keys):
-        ax_min, ax_max = np.amin(samples[:,i])/1.1, np.amax(samples[:,i])*1.1
+        ax_min, ax_max = np.amin(samples[:,i]), np.amax(samples[:,i])
         try:
             if varprops[k].log:
                 axes_truths.append(10**obs_glo[k][0])
@@ -303,7 +341,7 @@ def plot_corner(keys: list, samples: np.ndarray, save: str = None, show: bool = 
         except KeyError:
             axes_truths.append(None)
 
-        axes_range.append([ax_min, ax_max])
+        axes_range.append([ax_min/1.15, ax_max*1.15])
 
         axes_scale.append("log" if varprops[k].log else "linear")
         axes_labels.append(varprops[k].label)
@@ -342,7 +380,7 @@ def plot_corner(keys: list, samples: np.ndarray, save: str = None, show: bool = 
     # annotate on figure
     text = "Retrieval corner plot\n"
     text += f"{name_glo}\n"
-    text += f"{samples.shape[0]} samples\n"
+    text += f"Thinned to {samples.shape[0]} samples\n"
     fig.text(
         0.8,
         0.8,
@@ -357,7 +395,7 @@ def plot_corner(keys: list, samples: np.ndarray, save: str = None, show: bool = 
     fig.subplots_adjust(hspace=0.012, wspace=0.012)
     if save:
         print(f"    Saving plot to '{save}'")
-        fig.savefig(save)
+        fig.savefig(save, bbox_inches='tight')
     if show:
         print("    Showing plot GUI")
         plt.show()
