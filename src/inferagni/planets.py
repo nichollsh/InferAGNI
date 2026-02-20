@@ -15,20 +15,34 @@ exoplanets = exoplanets[exoplanets.radius() > 0]
 
 
 def get_obs(name: str) -> dict:
+    """Get the measured parameters of a planet, by name
 
+    Arguments
+    ------------
+    - name: str, The name of the planet.
+
+    Returns
+    ------------
+    - obs_pl: dict, The observed parameters of the planet, with uncertainties.
+    """
+
+    name = name.replace("_"," ")
+    obs_pl = {"_name": name.replace(" ", "_")}
+
+    # check databases
     if name in exoplanets.name():
         pl = exoplanets[name]
-        print(f"Found observations for exoplanet '{name}'")
+        print(f"Found observations for exoplanet {name}")
 
     elif name in solarsys.name():
         pl = solarsys[name]
-        print(f"Found observations for solar system planet '{name}'")
+        print(f"Found observations for Solar System planet {name}")
 
     else:
         print(f"Planet '{name}' not found in database")
-        return None
+        return obs_pl
 
-    obs_pl = {"_name": name.replace(" ", "_")}
+    # get parameters
     for key, lk in (
         ("r_phot", "radius"),
         ("mass_tot", "mass"),
@@ -38,8 +52,10 @@ def get_obs(name: str) -> dict:
         val = [getattr(pl, lk)(), getattr(pl, lk + "_uncertainty")()]
         obs_pl[key] = [float(v.value[0]) for v in val]
 
+    # print info
     for k, v in obs_pl.items():
         if k[0] == "_":
             continue
         print(f"    {k:16s}: {v[0]:10g} ± {v[1]:<10g}")
+
     return obs_pl

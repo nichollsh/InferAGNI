@@ -27,17 +27,28 @@ def cli():
 # 'helper' commands
 # ----------------
 
-
 @click.command()
 def listvars():
     """List vars in grid"""
 
     from inferagni.grid import Grid
-
     Grid(emits=False, profs=False)  # this will print information about the vars
 
-
 cli.add_command(listvars)
+
+
+@click.command()
+@click.argument("planet_name", nargs=1)
+def planet(planet_name: str):
+    """Get observed parameters for a named planet"""
+
+    click.echo(f"Looking up '{planet_name}'")
+
+    from inferagni.planets import get_obs
+    get_obs(planet_name)
+
+cli.add_command(planet)
+
 
 # ----------------
 # 'plot' command
