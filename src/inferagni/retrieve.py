@@ -21,10 +21,21 @@ global gr_glo, obs_glo
 gr_glo: Grid = None
 obs_glo: dict = None
 name_glo: str = "Unnamed_planet"
+truth_color = "deepskyblue"
 
 
 def log_prior(theta: list):
-    """Uniform prior: checks if parameters are within grid boundaries."""
+    """Uniform prior: checks if parameters are within grid boundaries.
+
+
+    Parameters
+    ------------
+    - theta : list, Current N-dimensional parameter set proposed by MCMC.
+
+    Returns
+    ------------
+    - ln_prior : float, Logarithm of the prior probability of the model
+    """
 
     global gr_glo
 
@@ -41,6 +52,10 @@ def log_likelihood(theta: list) -> float:
     Parameters
     ------------
     - theta : list, Current N-dimensional parameter set proposed by MCMC.
+
+    Returns
+    ------------
+    - ln_L : float, Logarithm of the likelihood of the model given the data
     """
 
     global gr_glo, obs_glo
@@ -53,6 +68,10 @@ def log_likelihood(theta: list) -> float:
 
     ln_L = 0.0
 
+    # Check if this regime is physical in the grid
+    # if gr_glo.interp_eval(theta_eval, vkey="succ") < 0.5:
+    #     return -np.inf  # Log(0) for unphysical regimes
+
     # Iterate through observables to handle potential asymmetry
     for k, (obs_val, obs_err) in obs_glo.items():
         # Evaluate the model (returns scaled value)
@@ -61,13 +80,23 @@ def log_likelihood(theta: list) -> float:
             model_val = np.log10(model_val)
 
         # Obs_err can be a scalar, or a size-2 tuple
-        if np.isscalar(obs_err) or len(obs_err) == 1:
-            # Standard Symmetric Case
+        if obs_err == '<': # must be greater than obs_val
+            if model_val < obs_val:
+                return -np.inf  # Log(0)
+
+        elif obs_err == '>': # must be less than obs_val
+            if model_val > obs_val:
+                return -np.inf  # Log(0)
+
+        elif np.isscalar(obs_err):
+            # Standard symmetric scalar case
             sig = obs_err
             norm = -0.5 * np.log(2 * np.pi * sig**2)
             ln_L += norm - 0.5 * ((model_val - obs_val) / sig) ** 2
+
         else:
-            # Asymmetric Case: err = (sigma_plus, sigma_minus)
+            # Asymmetric scalar case
+            # err = (sigma_plus, sigma_minus)
             sig_hi, sig_lo = obs_err
             sig = sig_hi if model_val > obs_val else sig_lo
 
@@ -84,6 +113,10 @@ def log_probability(theta: list):
     Parameters
     ------------
     - theta : list, Current N-dimensional parameter set proposed by MCMC.
+
+    Returns
+    ------------
+    - ln_post : float, Logarithm of the posterior probability of the model
     """
 
     global gr_glo, obs_glo
@@ -104,7 +137,25 @@ def run(
     thin: int | None = None,
     extra_keys: list = [],
 ) -> tuple:
-    """Executes the MCMC retrieval"""
+    """Executes the MCMC retrieval
+
+    Parameters
+    ------------
+    - gr: Grid, The grid object containing the model and interpolation methods.
+    - obs: dict, The observed parameters of the planet, with uncertainties.
+    - n_steps: int, Total number of MCMC steps to run (including burn-in).
+    - n_walkers: int, Number of MCMC walkers to use.
+    - n_procs: int, Number of CPU processes to use for parallelization.
+    - n_burn: int, Number of initial steps to discard as burn-in.
+    - thin: int, Thinning factor to reduce autocorrelation in samples.
+    - extra_keys: list, Additional keys to evaluate from the grid for each sample.
+
+
+    Returns
+    ------------
+    - all_keys: list, The list of parameter and observable keys corresponding to the samples.
+    - all_samples: np.ndarray, The MCMC samples for the parameters and extra keys.
+    """
 
     global obs_glo, gr_glo, name_glo
 
@@ -118,6 +169,7 @@ def run(
 
     # Initialising interpolators on original grid object
     print("Prepare interpolators")
+    gr.interp_init(vkey="succ",method='nearest')
     for k in set(extra_keys) | set(gr.input_keys):
         gr.interp_init(vkey=k, reinit=False)
     print(" ")
@@ -145,13 +197,20 @@ def run(
     # Check observables (values,errors)
     print("Observables:")
     for k, (obs_val, obs_err) in obs_glo.items():
-        if np.isscalar(obs_err):
-            print(f"    {k:16s}: {obs_val:10g} ± {obs_err:<10g}")
+        obs_val = np.abs(obs_val)
+        if obs_err == '<':
+            print(f"    {k:16s}:    >{obs_val:g}")
+        elif obs_err == '>':
+            print(f"    {k:16s}:    <{obs_val:g}")
         else:
-            print(f"    {k:16s}: {obs_val:10g} (+ {obs_err[0]:<10g} - {obs_err[1]:<10g})")
-        if varprops[k].log:
-            obs_glo[k][0] = np.log10(obs_glo[k][0])
-            obs_glo[k][1] = np.log10(obs_glo[k][1])
+            obs_err = np.abs(obs_err)
+            if np.isscalar(obs_err):
+                print(f"    {k:16s}: {obs_val:10g} ± {obs_err:<10g}")
+            else:
+                print(f"    {k:16s}: {obs_val:10g} (+ {obs_err[0]:<10g} - {obs_err[1]:<10g})")
+            if varprops[k].log:
+                obs_glo[k][0] = np.log10(obs_glo[k][0])
+                obs_glo[k][1] = np.log10(obs_glo[k][1])
     print("")
 
     # Convert bounds to logarithmic values where appropriate
@@ -163,10 +222,11 @@ def run(
     theta_ini = []
     print("Initial guesses for parameters:")
     for i, k in enumerate(gr_glo.input_keys):
+
         # centre guess around truth
-        if k in obs_glo.keys():
+        if k in obs_glo.keys() and (obs_glo[k][1] not in ['<', '>']):
             this_ini = np.random.normal(
-                obs_glo[k][0], scale=np.abs(np.median(obs_glo[k][1])), size=n_walkers
+                obs_glo[k][0], scale=np.abs(np.median(obs_glo[k][1]))/2, size=n_walkers
             )
 
         # otherwise use uniform guess
@@ -193,7 +253,7 @@ def run(
         n_steps = 4000
     n_steps = max(1, n_steps)
     if not n_burn:
-        n_burn = max(200, int(n_steps * 0.15))
+        n_burn = max(200, int(n_steps * 0.25))
     n_burn = max(1, n_burn)
     n_steps += n_burn
 
@@ -231,6 +291,21 @@ def run(
     print("    done")
     print("")
 
+    # Filter to cases consistent with inequality constraints
+    print("Filtering samples to satisfy inequality constraints")
+    for k in obs_glo.keys():
+        obs_val, obs_err = obs_glo[k]
+        if obs_err == '<': # must be greater than obs_val
+            print(f"    {k} > {obs_val:g}")
+            mask = all_samples[:, all_keys.index(k)] >= obs_val
+            all_samples = all_samples[mask]
+        elif obs_err == '>': # must be less than obs_val
+            print(f"    {k} < {obs_val:g}")
+            mask = all_samples[:, all_keys.index(k)] <= obs_val
+            all_samples = all_samples[mask]
+    print("New sample size after filtering: "+ str(all_samples.shape[0]))
+    print("")
+
     print("    Quantity    :    Median         (Uncertainty)             Autocorrelation")
     for i, key in enumerate(all_keys):
         mcmc = np.percentile(all_samples[:, i], [16, 50, 84])
@@ -245,7 +320,19 @@ def run(
     return all_keys, all_samples
 
 
-def write_csv(keys: list, samples: np.ndarray, fpath: str):
+def write_csv(keys: list, samples: np.ndarray, fpath: str) -> str:
+    """Writes the MCMC samples to a CSV file with a header containing the true values.
+
+    Parameters
+    ------------
+    - keys: list, The list of parameter and observable keys corresponding to the samples.
+    - samples: np.ndarray, The MCMC samples for the parameters and extra keys.
+    - fpath: str, The file path where the CSV should be saved.
+
+    Returns
+    ------------
+    - fpath: str, The file path where the CSV was saved.
+    """
 
     global gr_glo, obs_glo, name_glo
 
@@ -302,7 +389,7 @@ def plot_chain(samples: np.ndarray, save: str = None, show: bool = False):
                 tru = 10 ** obs_glo[k][0]
             else:
                 tru = obs_glo[k][0]
-            ax.axhline(y=tru, color="orangered")
+            ax.axhline(y=tru, color=truth_color)
 
     axes[-1].set_xlabel("Step Number")
 
@@ -356,12 +443,13 @@ def plot_corner(keys: list, samples: np.ndarray, save: str = None, show: bool = 
         titles=[l + "\n" for l in axes_labels],
         show_titles=True,
         title_kwargs={"fontsize": 9},
-        label_kwargs={"fontsize": 9, "labelpad": 7.0},
+        label_kwargs={"fontsize": 9},
+        labelpad=0.4,
         color="#1F2F3E",
         axes_scale=axes_scale,
         range=axes_range,
         truths=axes_truths,
-        truth_color="orangered",
+        truth_color=truth_color,
     )
 
     # indicate which variables are observables

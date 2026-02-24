@@ -14,12 +14,13 @@ exoplanets = ea.Exoplanets()
 exoplanets = exoplanets[exoplanets.radius() > 0]
 
 
-def get_obs(name: str) -> dict:
+def get_obs(name: str, quiet:bool=False) -> dict:
     """Get the measured parameters of a planet, by name
 
     Arguments
     ------------
     - name: str, The name of the planet.
+    - quiet: bool, If True, suppress printing of observation details.
 
     Returns
     ------------
@@ -32,11 +33,11 @@ def get_obs(name: str) -> dict:
     # check databases
     if name in exoplanets.name():
         pl = exoplanets[name]
-        print(f"Found observations for exoplanet {name}")
+        quiet or print(f"Found observations for exoplanet {name}")
 
     elif name in solarsys.name():
         pl = solarsys[name]
-        print(f"Found observations for Solar System planet {name}")
+        quiet or print(f"Found observations for Solar System planet {name}")
 
     else:
         print(f"Planet '{name}' not found in database")
@@ -56,6 +57,6 @@ def get_obs(name: str) -> dict:
     for k, v in obs_pl.items():
         if k[0] == "_":
             continue
-        print(f"    {k:16s}: {v[0]:10g} ± {v[1]:<10g}")
+        quiet or print(f"    {k:16s}: {v[0]:10g} ± {v[1]:<10g}")
 
     return obs_pl

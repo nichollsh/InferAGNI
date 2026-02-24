@@ -93,6 +93,12 @@ varprops = {
     "conv_ptop"     : GridVar(1/bar,     True   ,r"Convection $p_c^t$ [bar]",   cm.acton),
 
     "flux_loss"     : GridVar(1.0,       False  ,r"$F_\text{loss}$ [W/m$^2$]",  cm.roma),
+    "flux_loss_med" : GridVar(1.0,       False  ,r"$F_\text{loss,med}$ [W/m$^2$]",  cm.roma),
+    "flux_loss_max" : GridVar(1.0,       False  ,r"$F_\text{loss,max}$ [W/m$^2$]",  cm.roma),
+
+    "flux_toa"      : GridVar(1.0,       False  ,r"$F_\text{TOA}$ [W/m$^2$]",   cm.tokyo),
+    "flux_boa"      : GridVar(1.0,       False  ,r"$F_\text{BOA}$ [W/m$^2$]",   cm.tokyo),
+
     "succ"          : GridVar(1,         False  ,"Success",                     cm.roma), # succ=1, fail=-1
     "worker"        : GridVar(1,         False  ,"Worker",                      cm.nuuk),
     "index"         : GridVar(1,         False  ,"Index",                       cm.batlow),
@@ -126,7 +132,8 @@ gas_colors = {
 gases = list(gas_colors.keys())
 for gas in gases:
     latex = latexify(gas)
-    varprops[f"vmr_{gas}"] = GridVar(1, True, f"{latex} VMR", cm.glasgow)
+    varprops[f"vmr_{gas}"]     = GridVar(1, True,  f"{latex} VMR",     cm.glasgow)
+    varprops[f"log_vmr_{gas}"] = GridVar(1, False, f"log {latex} VMR", cm.glasgow)
 
 
 def undimen(arr, key: str):

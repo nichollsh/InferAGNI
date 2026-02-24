@@ -76,6 +76,9 @@ class Grid:
         self._df_results["H_phot"] = calc_scaleheight(
             self._df_results["t_phot"], self._df_results["μ_phot"], self._df_results["g_phot"]
         )
+        for k in self._df_results.keys():
+            if k.startswith("vmr_"):
+                self._df_results["log_"+k] = np.log10(np.clip(self._df_results[k].values, 1e-30, 1))
 
         # Merge the dataframes on index
         self.data = pd.merge(self._df_points, self._df_results, on="index")
@@ -253,12 +256,14 @@ class Grid:
         # Return the grid for plotting
         return itp_x, itp_y, itp_z
 
-    def interp_init(self, vkey: str = "r_phot", reinit: bool = False):
+    def interp_init(self, vkey: str = "r_phot", reinit: bool = False, method: str | None = None):
         """Instantiate a regular-grid interpolator of `vkey` the whole parameter space.
 
         Parameters
         -----------
         - vkey : str, The name of the variable to interpolate (e.g. "r_phot").
+        - reinit : bool, If True, re-initialise the interpolator even if it already exists.
+        - method : str | None, The interpolation method to use. Uses default method if None
         """
 
         from scipy.interpolate import RegularGridInterpolator
@@ -268,13 +273,13 @@ class Grid:
             print(f"Interpolator already initialised on {vkey}")
             return
 
-        # failed cases
-        # mask = self.data["succ"] < 0.0
+        # method
+        if not method:
+            method = self._interp_method
 
         # organise parameters
         xyz = []
-        print(f"Creating interpolator on {vkey}")
-        print("    Organising data")
+        print(f"Creating {method} interpolator on {vkey}")
         grid_points = self.get_points()
         for i, gp in enumerate(grid_points):
             k = self.input_keys[i]
@@ -305,7 +310,7 @@ class Grid:
         # instantiate regular-grid interpolator
         # print("    Creating interpolator")
         self._interp[vkey] = RegularGridInterpolator(
-            xyz, v_g, fill_value=None, bounds_error=False, method=self._interp_method
+            xyz, v_g, fill_value=None, bounds_error=False, method=method
         )
 
         print("    Interpolator ready")
