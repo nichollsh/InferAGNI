@@ -12,7 +12,7 @@ from .grid import Grid
 from .planets import exoplanets, solarsys
 from .util import R_earth, getclose, varprops
 
-DPI = 120
+DPI = 400
 
 
 # ZENG+19 MASS RADIUS CURVES
@@ -281,7 +281,7 @@ def massrad_2d(
     # create figure object
     figscale = 1.2
     fig, ax = plt.subplots(
-        1, 1, figsize=(5 * figscale, 4 * figscale), dpi=DPI, num="Mass-Radius 2D"
+        1, 1, figsize=(5 * figscale, 4 * figscale),  num="Mass-Radius 2D"
     )
 
     # configure...
@@ -604,7 +604,7 @@ def massrad_2d(
     fig.tight_layout()
     if save:
         print(f"    Saving plot to '{save}'")
-        fig.savefig(save, bbox_inches="tight")
+        fig.savefig(save, bbox_inches="tight",dpi=DPI)
     if show:
         print("    Showing plot GUI")
         fig.show()

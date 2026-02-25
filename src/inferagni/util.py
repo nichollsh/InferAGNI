@@ -63,11 +63,11 @@ varprops = {
     "Teff"          : GridVar(1.0,       False  ,r"Star $T_\text{eff}$ [K]",    cm.batlow),
     "instellation"  : GridVar(1.0,       True   ,"Instellation [So]",           cm.batlow),
 
-    "metal_C"       : GridVar(1.0,       True   ,"C/H mol",                     cm.hawaii_r),
-    "metal_S"       : GridVar(1.0,       True   ,"S/H mol",                     cm.hawaii_r),
-    "metal_O"       : GridVar(1.0,       True   ,"O/H mol",                     cm.hawaii_r),
+    "metal_C"       : GridVar(1.0,       True   ,"C/H mol",                     cm.navia_r),
+    "metal_S"       : GridVar(1.0,       True   ,"S/H mol",                     cm.navia_r),
+    "metal_O"       : GridVar(1.0,       True   ,"O/H mol",                     cm.navia_r),
 
-    "logZ"          : GridVar(1.0,       False   ,r"log$_{10}(Z_a)$",           cm.hawaii_r),
+    "logZ"          : GridVar(1.0,       False   ,r"log$_{10}(Z_a)$",           cm.navia_r),
     "logCO"         : GridVar(1.0,       False   ,r"log$_{10}(\text{C/O})$",    cm.managua_r),
 
 
@@ -77,13 +77,13 @@ varprops = {
     "p_surf"        : GridVar(1/bar,     True   ,r"Surf. pressure [bar]",      cm.glasgow), # output, Pa -> bar
     "t_surf"        : GridVar(1,         False  ,r"Surf. tmp. [K]",             cm.glasgow),
     "r_surf"        : GridVar(1/R_earth, False  ,r"Surf. radius [$R_\oplus$]",  cm.batlow),
-    "μ_surf"        : GridVar(1e3,       False  ,r"Surf. MMW [g/mol]",          cm.hawaii_r),
+    "μ_surf"        : GridVar(1e3,       False  ,r"Surf. MMW [g/mol]",          cm.navia_r),
     "g_surf"        : GridVar(1,         False  ,r"Surf. grav. [m$^2$/s]",      cm.devon_r),
 
     "r_bound"       : GridVar(1/R_earth, False  ,r"$R_b$ [$R_\oplus$]",         cm.batlow),
 
     "r_phot"        : GridVar(1/R_earth, False  ,r"Planet radius [$R_\oplus$]", cm.batlow),
-    "μ_phot"        : GridVar(1e3,       False  ,r"$\mu_p$ [g/mol]",            cm.hawaii_r),
+    "μ_phot"        : GridVar(1e3,       False  ,r"$\mu_p$ [g/mol]",            cm.navia_r),
     "t_phot"        : GridVar(1,         False  ,r"Phot. temp. [K]",            cm.glasgow),
     "g_phot"        : GridVar(1,         True   ,r"Phot. gravity [m$^2$/s]",    cm.devon_r),
     "H_phot"        : GridVar(1/1e3,     True  ,"Phot. scale height [km]",     cm.batlow),
@@ -142,24 +142,17 @@ def undimen(arr, key: str):
     if key not in varprops.keys():
         raise KeyError(f"Unknown key {key}")
 
-    if isinstance(arr, list):
+    if not np.isscalar(arr):
         arr = np.array(arr)
-
-    # if varprops[key].log:
-    #     return np.log10(arr*varprops[key].scale)
-    # else:
     return arr * varprops[key].scale
 
 
 def redimen(arr, key):
+    """Return the dimensionalised form of an array"""
 
     if key not in varprops.keys():
         raise KeyError(f"Unknown key {key}")
 
-    if isinstance(arr, list):
+    if not np.isscalar(arr):
         arr = np.array(arr)
-
-    # if varprops[key].log:
-    #     return np.pow(10, arr/varprops[key].scale)
-    # else:
     return arr / varprops[key].scale

@@ -22,6 +22,7 @@ gr_glo: Grid = None
 obs_glo: dict = None
 name_glo: str = "Unnamed_planet"
 truth_color = "deepskyblue"
+samples_color = "#1F2F3E"
 
 
 def log_prior(theta: list):
@@ -320,8 +321,8 @@ def run(
     return all_keys, all_samples
 
 
-def write_csv(keys: list, samples: np.ndarray, fpath: str) -> str:
-    """Writes the MCMC samples to a CSV file with a header containing the true values.
+def write_result(keys: list, samples: np.ndarray, fpath: str) -> str:
+    """Writes the MCMC samples to a CSV file.
 
     Parameters
     ------------
@@ -344,19 +345,73 @@ def write_csv(keys: list, samples: np.ndarray, fpath: str) -> str:
         samples_dimen.append(redimen(samples[:, i], k))
     samples_dimen = np.array(samples_dimen).T
 
-    truth = []
-    for k in obs_glo.keys():
-        if varprops[k].log:
-            tru = 10 ** obs_glo[k][0]
-        else:
-            tru = obs_glo[k][0]
-        truth.append(f"{k}={redimen(tru, k)}")
-
     # construct dataframe and save to csv
     df = pd.DataFrame(samples_dimen, columns=keys)
 
     # header information
-    header = f"Samples from MCMC retrieval. Len={samples.shape[0]}. Truth: {', '.join(truth)}"
+    header = f"Samples from MCMC retrieval of {name_glo}. Len={samples.shape[0]}"
+
+    # Write file
+    with open(fpath, "w") as hdl:
+        hdl.write(f"# {header} \n")
+        df.to_csv(hdl, sep=",", index=False)
+
+
+    print("    done")
+    return fpath
+
+
+def write_truth(fpath: str) -> str:
+    """Write observables (truths) to a CSV file, with uncertainties.
+
+    Parameters
+    ------------
+    - fpath: str, The file path where the CSV should be saved.
+
+    Returns
+    ------------
+    - fpath: str, The file path where the CSV was saved.
+    """
+
+    global gr_glo, obs_glo, name_glo
+
+    print(f"Writing truths to '{fpath}'")
+
+
+    # construct dataframe and save to csv
+    data = []
+    for k in obs_glo.keys():
+        obs_val, obs_err = deepcopy(obs_glo[k])
+
+        if varprops[k].log:
+            obs_val = 10 ** obs_val
+        obs_val = redimen(obs_val, k)
+        obs_val = f"{obs_val:g}"
+
+        if obs_err == '<':
+            obs_err_plu = ">value"
+            obs_err_min = "-"
+
+        elif obs_err == '>':
+            obs_err_plu = "<value"
+            obs_err_min = "-"
+
+        else:
+            if varprops[k].log:
+                obs_err = 10 ** obs_err
+            obs_err = redimen(obs_err, k)
+            if np.isscalar(obs_err):
+                obs_err_plu = f"{obs_err:g}"
+                obs_err_min = obs_err_plu
+            else:
+                obs_err_plu = f"{obs_err[0]:g}"
+                obs_err_min = f"{obs_err[1]:g}"
+
+        data.append((k, obs_val, obs_err_plu, obs_err_min))
+    df = pd.DataFrame(data, columns=["key", "value", "plus", "minus"])
+
+    # header information
+    header = f"Truths used for MCMC retrieval of {name_glo}"
 
     # Write file
     with open(fpath, "w") as hdl:
@@ -445,7 +500,7 @@ def plot_corner(keys: list, samples: np.ndarray, save: str = None, show: bool = 
         title_kwargs={"fontsize": 9},
         label_kwargs={"fontsize": 9},
         labelpad=0.4,
-        color="#1F2F3E",
+        color=samples_color,
         axes_scale=axes_scale,
         range=axes_range,
         truths=axes_truths,
