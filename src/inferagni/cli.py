@@ -164,7 +164,7 @@ def retrieve(
 
     from inferagni.grid import Grid
     from inferagni.planets import get_obs
-    from inferagni.retrieve import plot_chain, plot_corner, run
+    from inferagni.retrieve import plot_chain, plot_corner, run_retrieval
     from inferagni.util import print_sep_min
 
     obs = get_obs(planet_name)
@@ -178,7 +178,7 @@ def retrieve(
     gr = Grid(gridname=gridname, emits=False, profs=False)
 
     # run retrieval
-    keys, samples = run(
+    keys, samples = run_retrieval(
         gr,
         obs,
         extra_keys=quantities,

@@ -15,7 +15,7 @@ def test_retrieve_likelihood(tmp_path):
     # Load a grid (skip heavy emissions/profiles)
     gr = Grid(emits=False, profs=False)
 
-    # Convert bounds for log variables to log10 (as run() does)
+    # Convert bounds for log variables to log10 (as run_retrieval() does)
     for i, k in enumerate(gr.input_keys):
         if util.varprops[k].log:
             gr.bounds[i] = np.log10(gr.bounds[i])
@@ -69,7 +69,7 @@ def test_retrieve_run(tmp_path):
     n_walkers = max(2 * n_dim, 4)
 
     # Run the real retrieval with very few steps so it completes quickly
-    keys, samples = retrieve.run(
+    keys, samples = retrieve.run_retrieval(
         gr,
         obs,
         n_steps=100,

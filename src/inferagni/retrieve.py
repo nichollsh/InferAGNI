@@ -16,14 +16,13 @@ import pandas as pd
 
 from .grid import Grid
 from .util import print_sep_min, redimen, varprops
-from .plot import DPI
+from .plot import DPI, truth_color, samples_color
 
 global gr_glo, obs_glo
 gr_glo: Grid = None
 obs_glo: dict = None
 name_glo: str = "Unnamed_planet"
-truth_color = "deepskyblue"
-samples_color = "#1F2F3E"
+
 
 
 def log_prior(theta: list):
@@ -129,7 +128,7 @@ def log_probability(theta: list):
     return lp + log_likelihood(theta)
 
 
-def run(
+def run_retrieval(
     gr: Grid,
     obs: dict,
     n_steps: int | None = None,
