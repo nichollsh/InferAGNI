@@ -8,12 +8,12 @@ import numpy as np
 import pandas as pd
 
 from .util import calc_scaleheight, print_sep_min, undimen, varprops
-
+from .data import DEFAULT_GRID, check_grid_name
 
 class Grid:
     def __init__(
         self,
-        data_dir: str | None = None,
+        gridname: str | None = None,
         emits: bool = True,
         profs: bool = True,
     ):
@@ -21,27 +21,39 @@ class Grid:
         self._dtype = np.float32
         self._encoding = "utf-8"
 
-        print("Loading data from disk...")
-        if not data_dir:
-            data_dir = os.path.join(os.path.dirname(__file__), "data")
-        data_dir = os.path.abspath(data_dir)
-        print(f"    Source: {data_dir}")
-
         # scalar data (stored as scaled values)
         self._df_points = None  # Dataframe of the grid points (input)
         self._df_results = None  # Dataframe of the results (output)
         self.bounds = None  # Bounds on the input axes
         self.data = None  # Merged dataframe
-        self._load_scalars(data_dir)  # load from CSVs
 
         # emission spectra
         self.emits_wl = None  # wavelengths
         self.emits_fl = None  # fluxes
-        if emits:
-            self._load_emits(data_dir)  # load from CSV
 
         # atmosphere profiles
         self.profs = None  # load from NetCDF
+
+
+        print("Loading data from disk...")
+        if not gridname:
+            gridname = DEFAULT_GRID
+        elif not check_grid_name(gridname):
+            return
+
+        data_dir = os.path.join(os.path.dirname(__file__), "data", gridname)
+        data_dir = os.path.abspath(data_dir)
+        print(f"    Source: {data_dir}")
+
+        # check folder exists
+        if not os.path.isdir(data_dir):
+            print("    Grid data folder not found")
+            print("    Please run 'inferagni update' to download the required data")
+
+        # load data
+        self._load_scalars(data_dir)  # load from CSVs
+        if emits:
+            self._load_emits(data_dir)  # load from CSV
         if profs:
             self._load_profs(data_dir)  # load from NetCDF
 

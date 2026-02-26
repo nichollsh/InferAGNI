@@ -225,7 +225,7 @@ def massrad_2d(
     echo_gridpoints=False,
     vmr_min=1e-4,
     show=True,
-    save="massrad_2d.pdf",
+    save=False,
 ):
     # copy dataframe
     subdata = deepcopy(gr.data)
@@ -607,6 +607,6 @@ def massrad_2d(
         fig.savefig(save, bbox_inches="tight",dpi=DPI)
     if show:
         print("    Showing plot GUI")
-        fig.show()
+        plt.show()
 
     return fig

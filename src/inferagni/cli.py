@@ -49,6 +49,35 @@ def planet(planet_name: str):
 
 cli.add_command(planet)
 
+# ----------------
+# 'downloader' commands
+# ----------------
+
+@click.command()
+@click.argument("gridname", nargs=1, default=None)
+@click.option("--force", is_flag=True, help="Force update even if not needed")
+def update(gridname: str|None, force: bool):
+    """Download required grid data"""
+
+    from inferagni.data import download_grid, check_grid_needs_update
+
+    if not gridname:
+        from inferagni.grid import DEFAULT_NAME
+        gridname = DEFAULT_NAME
+
+    # check if update is needed
+    if not force and not check_grid_needs_update(gridname):
+        click.echo("Grid data is up to date. No update needed.")
+        return
+
+    # download data
+    if download_grid(gridname):
+        click.echo("Grid data updated successfully.")
+    else:
+        click.echo("Failed to update grid data.")
+
+cli.add_command(update)
+
 
 # ----------------
 # 'plot' command
@@ -77,8 +106,13 @@ def plot(outdir, zkey, controls):
     from inferagni.grid import Grid
     from inferagni.plot import massrad_2d
 
+    gr = Grid(emits=False, profs=False)
+    if gr.data is None:
+        click.echo("Grid data could not be loaded. Please run 'update' command first.")
+        return
+
     massrad_2d(
-        Grid(emits=False, profs=False),
+        gr,
         key1=zkey,
         key2=None,
         controls=controls_dict,
@@ -101,10 +135,28 @@ cli.add_command(plot)
 @click.option("--steps", type=int)
 @click.option("--walkers", type=int)
 @click.option("--procs", type=int)
+@click.option("--gridname", type=str, default=None)
 def retrieve(
-    outdir: str, planet_name: str, quantities: list, steps=None, walkers=None, procs=None
+    outdir: str, planet_name: str, quantities: list,
+    steps=None, walkers=None, procs=None, gridname=None
 ):
-    """Infer some quantities for a named planet"""
+    """Infer some quantities for a named planet
+
+    Parameters
+    ----------
+    planet_name : str
+        Name of planet to retrieve for. Must be in the database (see 'planet' command).
+    quantities : list of str
+        List of quantities to retrieve. Must be in the grid (see 'listvars' command).
+    steps : int, optional
+        Number of MCMC steps to run.
+    walkers : int, optional
+        Number of MCMC walkers to use.
+    procs : int, optional
+        Number of processes to use for parallelisation.
+    gridname : str, optional
+        Name of grid to use. If not specified, the default grid will be used.
+    """
 
     click.echo(f"Planet: {planet_name}")
     click.echo(f"Quantities: {quantities}")
@@ -122,8 +174,10 @@ def retrieve(
     click.echo(print_sep_min)
     click.echo("")
 
+    # load grid
+    gr = Grid(gridname=gridname, emits=False, profs=False)
+
     # run retrieval
-    gr = Grid(emits=False, profs=False)
     keys, samples = run(
         gr,
         obs,

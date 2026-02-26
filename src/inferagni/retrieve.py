@@ -161,6 +161,12 @@ def run(
 
     global obs_glo, gr_glo, name_glo
 
+    # check grid is ok
+    if gr.data is None:
+        print("Cannot perform retrieval because grid data is not available")
+        print("    please run 'inferagni update' command first.")
+        return None, None
+
     # Extra keys should not include the parameters, but should include the observables
     try:
         name_glo = obs["_name"]

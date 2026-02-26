@@ -9,8 +9,8 @@ __license__ = "GPLv3"
 import inferagni.cli as cli
 import inferagni.grid as grid
 import inferagni.planets as planets
-import inferagni.plot as plot
-import inferagni.retrieve as retrieve
+# import inferagni.plot as plot
+# import inferagni.retrieve as retrieve
 import inferagni.util as util
 
-__all__ = ["util", "grid", "cli", "plot", "planets", "retrieve"]
+__all__ = ["util", "grid", "cli", "planets"]  # "plot", "retrieve"
