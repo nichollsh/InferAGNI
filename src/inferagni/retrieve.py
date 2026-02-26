@@ -16,6 +16,7 @@ import pandas as pd
 
 from .grid import Grid
 from .util import print_sep_min, redimen, varprops
+from .plot import DPI
 
 global gr_glo, obs_glo
 gr_glo: Grid = None
@@ -368,7 +369,6 @@ def write_truth(fpath: str) -> str:
     ------------
     - fpath: str, The file path where the CSV should be saved.
 
-    Returns
     ------------
     - fpath: str, The file path where the CSV was saved.
     """
@@ -451,7 +451,7 @@ def plot_chain(samples: np.ndarray, save: str = None, show: bool = False):
     fig.tight_layout()
     if save:
         print(f"    Saving plot to '{save}'")
-        fig.savefig(save, bbox_inches="tight")
+        fig.savefig(save, bbox_inches="tight", dpi=DPI)
     if show:
         print("    Showing plot GUI")
         plt.show()
@@ -486,7 +486,7 @@ def plot_corner(keys: list, samples: np.ndarray, save: str = None, show: bool = 
         axes_range.append([ax_min / 1.15, ax_max * 1.15])
 
         axes_scale.append("log" if varprops[k].log else "linear")
-        axes_labels.append(varprops[k].label)
+        axes_labels.append(varprops[k].label_short)
 
     # 2. Create the corner plot
     fig = plt.figure(figsize=(11, 9))
@@ -538,7 +538,7 @@ def plot_corner(keys: list, samples: np.ndarray, save: str = None, show: bool = 
     fig.subplots_adjust(hspace=0.012, wspace=0.012)
     if save:
         print(f"    Saving plot to '{save}'")
-        fig.savefig(save, bbox_inches="tight")
+        fig.savefig(save, bbox_inches="tight", dpi=DPI)
     if show:
         print("    Showing plot GUI")
         plt.show()

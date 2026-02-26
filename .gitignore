@@ -218,6 +218,8 @@ __marimo__/
 .DS_Store
 __pycache__
 !output/.gitkeep
+notebooks/output/*
+!notebooks/output/_readme.txt
 nogit_*
 *.pdf
 *.png

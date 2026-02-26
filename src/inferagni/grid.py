@@ -19,6 +19,7 @@ class Grid:
     ):
 
         self._dtype = np.float32
+        self._encoding = "utf-8"
 
         print("Loading data from disk...")
         if not data_dir:
@@ -64,12 +65,14 @@ class Grid:
 
         # Read the grid point definition file
         self._df_points = pd.read_csv(
-            os.path.join(data_dir, "gridpoints.csv"), sep=",", dtype=self._dtype
+            os.path.join(data_dir, "gridpoints.csv"), sep=",", dtype=self._dtype,
+            encoding=self._encoding
         )
 
         # Read the consolidated results file
         self._df_results = pd.read_csv(
-            os.path.join(data_dir, "consolidated_table.csv"), sep=",", dtype=self._dtype
+            os.path.join(data_dir, "consolidated_table.csv"), sep=",", dtype=self._dtype,
+            encoding=self._encoding
         )
 
         # Derive some observables
@@ -140,6 +143,8 @@ class Grid:
             dtype=float,
             delimiter=",",
             converters=lambda x: 0 if x == "index" else float(x),
+            encoding=self._encoding
+
         )
         self.emits_wl = np.array(emit_dat[0, 1:], copy=True, dtype=self._dtype)
         self.emits_fl = np.array(emit_dat[1:, 1:], copy=True, dtype=self._dtype)
