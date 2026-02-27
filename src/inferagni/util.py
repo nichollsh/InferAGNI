@@ -64,11 +64,11 @@ varprops = {
     "Teff"          : GridVar(1.0,       False  ,r"Star $T_\text{eff}$ [K]",    r"$T_\text{eff}$ [K]", cm.batlow),
     "instellation"  : GridVar(1.0,       True   ,"Instellation [So]",           r"$F_\text{bol}$ [So]", cm.batlow),
 
-    "metal_C"       : GridVar(1.0,       True   ,"C/H mol",                     "C/H", cm.navia_r),
-    "metal_S"       : GridVar(1.0,       True   ,"S/H mol",                     "S/H", cm.navia_r),
-    "metal_O"       : GridVar(1.0,       True   ,"O/H mol",                     "O/H", cm.navia_r),
+    "metal_C"       : GridVar(1.0,       True   ,"C/H mol",                     "C/H", cm.hawaii_r),
+    "metal_S"       : GridVar(1.0,       True   ,"S/H mol",                     "S/H", cm.hawaii_r),
+    "metal_O"       : GridVar(1.0,       True   ,"O/H mol",                     "O/H", cm.hawaii_r),
 
-    "logZ"          : GridVar(1.0,       False   ,r"Metallicity, log$_{10}(Z_a)$",      r"$\log_{10}(Z_a)$", cm.navia_r),
+    "logZ"          : GridVar(1.0,       False   ,r"Metallicity, log$_{10}(Z_a)$",      r"$\log_{10}(Z_a)$", cm.hawaii_r),
     "logCO"         : GridVar(1.0,       False   ,r"log$_{10}(\text{C/O})$",            r"$\log_{10}(\text{C/O})$", cm.managua_r),
 
 
@@ -78,13 +78,13 @@ varprops = {
     "p_surf"        : GridVar(1/bar,     True   ,r"Surface pressure [bar]",       r"$p_\text{s}$ [bar]", cm.glasgow), # output, Pa -> bar
     "t_surf"        : GridVar(1,         False  ,r"Surface temp. [K]",            r"$T_\text{s}$ [K]", cm.glasgow),
     "r_surf"        : GridVar(1/R_earth, False  ,r"Surface radius [$R_\oplus$]",  r"$R_\text{s}$ [$R_\oplus$]", cm.batlow),
-    "μ_surf"        : GridVar(1e3,       False  ,r"Surface MMW [g/mol]",          r"$\mu_\text{s}$ [g/mol]", cm.batlow_r),
+    "μ_surf"        : GridVar(1e3,       False  ,r"Surface MMW [g/mol]",          r"$\mu_\text{s}$ [g/mol]", cm.hawaii_r),
     "g_surf"        : GridVar(1,         False  ,r"Surface grav. [m$^2$/s]",      r"$g_\text{s}$ [m$^2$/s]", cm.devon_r),
 
     "r_bound"       : GridVar(1/R_earth, False  ,r"Binding radius [$R_\oplus$]",  r"$R_b$ [$R_\oplus$]", cm.batlow),
 
     "r_phot"        : GridVar(1/R_earth, False  ,r"Planet radius [$R_\oplus$]", r"$R_\text{p}/R_\oplus$", cm.batlow),
-    "μ_phot"        : GridVar(1e3,       False  ,r"$\mu_p$ [g/mol]",            r"$\mu_p$ [g/mol]", cm.batlow_r),
+    "μ_phot"        : GridVar(1e3,       False  ,r"$\mu_p$ [g/mol]",            r"$\mu_p$ [g/mol]", cm.hawaii_r),
     "t_phot"        : GridVar(1,         False  ,r"Phot. temp. [K]",            r"$T_\text{p}$ [K]", cm.glasgow),
     "g_phot"        : GridVar(1,         True   ,r"Phot. gravity [m$^2$/s]",    r"$g_\text{p}$ [m$^2$/s]", cm.devon_r),
     "H_phot"        : GridVar(1/1e3,     True   ,r"Phot. scale height [km]",    r"$H_\text{p}$ [km]", cm.batlow),

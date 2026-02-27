@@ -14,7 +14,7 @@ from .planets import exoplanets, solarsys
 from .util import R_earth, getclose, varprops
 
 DPI = 400
-truth_color = "deepskyblue"
+truth_color = "orangered"
 samples_color = "#1F2F3E"
 
 
