@@ -62,8 +62,8 @@ def update(gridname: str|None, force: bool):
     from inferagni.data import download_grid, check_grid_needs_update
 
     if not gridname:
-        from inferagni.grid import DEFAULT_NAME
-        gridname = DEFAULT_NAME
+        from inferagni.grid import DEFAULT_GRID
+        gridname = DEFAULT_GRID
 
     # check if update is needed
     if not force and not check_grid_needs_update(gridname):
@@ -96,6 +96,11 @@ def plot(outdir, zkey, controls):
     click.echo(f"Zkey:     {zkey}")
     click.echo(f"Controls: {controls}")
     click.echo(" ")
+
+    # check Zkey provided
+    if "=" in zkey:
+        click.echo("Zkey should not contain '='. Must be one of the input variables in the grid.")
+        return
 
     # convert control to dict
     controls_dict = {}

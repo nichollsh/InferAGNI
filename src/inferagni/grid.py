@@ -16,15 +16,26 @@ class Grid:
         gridname: str | None = None,
         emits: bool = True,
         profs: bool = True,
+        succ_mode: list | str = "none"
     ):
 
+        # Settings
         self._dtype = np.float32
         self._encoding = "utf-8"
+
+        # Modes for checking strictness about gridpoint convergence
+        #     'succ': only consider points with succ > 0 (most strict)
+        #     'fmed': only consider points with flux_loss_med < flux_loss_crit
+        #     'none': consider all points (least strict)
+        if isinstance(succ_mode, str):
+            succ_mode = [succ_mode]
+        self._succ_mode = set(succ_mode)
+        self._flux_loss_crit = 1.0
 
         # scalar data (stored as scaled values)
         self._df_points = None  # Dataframe of the grid points (input)
         self._df_results = None  # Dataframe of the results (output)
-        self.bounds = None  # Bounds on the input axes
+        self.bounds = None  # Boundcles on the input axes
         self.data = None  # Merged dataframe
 
         # emission spectra
@@ -33,7 +44,6 @@ class Grid:
 
         # atmosphere profiles
         self.profs = None  # load from NetCDF
-
 
         print("Loading data from disk...")
         if not gridname:

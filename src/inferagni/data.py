@@ -116,6 +116,31 @@ def check_grid_needs_update(gridname: str) -> bool:
     return False
 
 
+def request_filesize(url) -> int|None:
+    """Request the filesize of a file at a URL.
+
+    Parameters
+    ----------
+    url : str, URL of the file.
+
+    Returns
+    -------
+    filesize : int, Filesize in MB, or None if not available.
+    """
+
+    try:
+        response = requests.head(url)
+        response.raise_for_status()
+        if "Content-Length" in response.headers:
+            return int(response.headers["Content-Length"])/1e6
+        else:
+            print(f"Cannot get information about '{url}'")
+            return None
+
+    except requests.exceptions.RequestException as e:
+        print(e)
+        return None
+
 def download_file(url, destination):
     """Download a file from a URL to a local destination."""
     try:
@@ -158,6 +183,13 @@ def download_grid(gridname: str) -> bool:
 
     # Construct url for zip on Zenodo
     url = f"https://zenodo.org/records/{ZENODO_RECORD}/files/{f}?download=1"
+
+    # Check file size
+    filesize = request_filesize(url)
+    if filesize is not None:
+        print(f"    expected file size: {filesize:.1f} MB")
+
+    # Download file
     if not download_file(url, fpath):
         print(f"        failed to download '{f}' from '{url}'")
         return False

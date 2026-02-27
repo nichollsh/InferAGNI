@@ -69,9 +69,11 @@ def log_likelihood(theta: list) -> float:
 
     ln_L = 0.0
 
-    # Check if this regime is physical in the grid
-    # if gr_glo.interp_eval(theta_eval, vkey="succ") < 0.5:
-    #     return -np.inf  # Log(0) for unphysical regimes
+    # Check if this regime is physical in the grid, Log(0) for unphysical regimes
+    if ('succ' in gr_glo._succ_mode) and (gr_glo.interp_eval(theta_eval, vkey="succ") < 0.5):
+        return -np.inf
+    if ('fmed' in gr_glo._succ_mode) and (gr_glo.interp_eval(theta_eval, vkey="flux_loss_med") > gr_glo._flux_loss_crit):
+        return -np.inf
 
     # Iterate through observables to handle potential asymmetry
     for k, (obs_val, obs_err) in obs_glo.items():
@@ -176,7 +178,12 @@ def run_retrieval(
 
     # Initialising interpolators on original grid object
     print("Prepare interpolators")
-    gr.interp_init(vkey="succ",method='nearest')
+    #    required
+    if 'succ' in gr._succ_mode:
+        gr.interp_init(vkey="succ",method='nearest')
+    if 'fmed' in gr._succ_mode:
+        gr.interp_init(vkey="flux_loss_med",method='linear')
+    #    optional
     for k in set(extra_keys) | set(gr.input_keys):
         gr.interp_init(vkey=k, reinit=False)
     print(" ")
