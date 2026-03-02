@@ -23,6 +23,9 @@ gr_glo: Grid = None
 obs_glo: dict = None
 name_glo: str = "Unnamed_planet"
 
+DEFAULT_THIN: int = 5
+DEFAULT_STEPS: int = 4000
+DEFAULT_BURNFRAC: float = 0.2
 
 
 def log_prior(theta: list):
@@ -261,15 +264,21 @@ def run_retrieval(
 
     # Default values
     if not thin:
-        thin = 10
+        thin = DEFAULT_THIN
     thin = max(1, thin)
+
     if not n_steps:
-        n_steps = 4000
-    n_steps = max(1, n_steps)
+        n_steps = DEFAULT_STEPS
+    if n_steps < 10:
+        print(f"Warning: increased n_steps from {n_steps} to 10")
+        n_steps = 10
+
     if not n_burn:
-        n_burn = max(200, int(n_steps * 0.25))
+        n_burn = int(n_steps * DEFAULT_BURNFRAC)
+    if n_burn > n_steps:
+        print(f"Warning: decreased n_burn from {n_burn} to {n_steps - 2}")
+        n_burn = n_steps - 2
     n_burn = max(1, n_burn)
-    n_steps += n_burn
 
     # Run sampler
     print(f"Will do {n_steps} steps with {n_walkers} walkers using {n_procs} processes")
