@@ -29,8 +29,8 @@ class Grid:
         #     'none': consider all points (least strict)
         if isinstance(succ_mode, str):
             succ_mode = [succ_mode]
-        self._succ_mode = set(succ_mode)
-        self._flux_loss_crit = 1.0
+        self._succ_mode = set([s.lower() for s in succ_mode])
+        self._flux_loss_crit = 1.0 # W/m^2
 
         # scalar data (stored as scaled values)
         self._df_points = None  # Dataframe of the grid points (input)
