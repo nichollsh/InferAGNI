@@ -81,7 +81,7 @@ varprops = {
     "μ_surf"        : GridVar(1e3,       False  ,r"Surface MMW [g/mol]",          r"$\mu_\text{s}$ [g/mol]", cm.hawaii_r),
     "g_surf"        : GridVar(1,         False  ,r"Surface grav. [m$^2$/s]",      r"$g_\text{s}$ [m$^2$/s]", cm.devon_r),
 
-    "r_bound"       : GridVar(1/R_earth, False  ,r"Binding radius [$R_\oplus$]",  r"$R_b$ [$R_\oplus$]", cm.batlow),
+    "r_bound"       : GridVar(1/R_earth, True  ,r"Binding radius [$R_\oplus$]",  r"$R_b$ [$R_\oplus$]", cm.batlow),
 
     "r_phot"        : GridVar(1/R_earth, False  ,r"Planet radius [$R_\oplus$]", r"$R_\text{p}/R_\oplus$", cm.batlow),
     "μ_phot"        : GridVar(1e3,       False  ,r"$\mu_p$ [g/mol]",            r"$\mu_p$ [g/mol]", cm.hawaii_r),
@@ -133,7 +133,7 @@ gas_colors = {
 gases = list(gas_colors.keys())
 for gas in gases:
     latex = latexify(gas)
-    varprops[f"vmr_{gas}"]     = GridVar(1, True,  f"{latex} VMR",                r"\chi"+latex, cm.glasgow)
+    varprops[f"vmr_{gas}"]     = GridVar(1, True,  f"{latex} VMR",                r"$\chi$"+latex, cm.glasgow)
     varprops[f"log_vmr_{gas}"] = GridVar(1, False, r"log$_{10}$" + f"{latex} VMR", r"log$_{10}(\chi$" + latex + r"$)$", cm.glasgow)
 
 

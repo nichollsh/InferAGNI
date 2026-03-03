@@ -86,11 +86,11 @@ def log_likelihood(theta: list) -> float:
             model_val = np.log10(model_val)
 
         # Obs_err can be a scalar, or a size-2 tuple
-        if obs_err == '<': # must be greater than obs_val
+        if obs_err == '>value': # must be greater than obs_val
             if model_val < obs_val:
                 return -np.inf  # Log(0)
 
-        elif obs_err == '>': # must be less than obs_val
+        elif obs_err == '<value': # must be less than obs_val
             if model_val > obs_val:
                 return -np.inf  # Log(0)
 
@@ -142,6 +142,7 @@ def run_retrieval(
     n_burn: int | None = None,
     thin: int | None = None,
     extra_keys: list = [],
+    filter_ineq: bool = True,
 ) -> tuple:
     """Executes the MCMC retrieval
 
@@ -155,6 +156,7 @@ def run_retrieval(
     - n_burn: int, Number of initial steps to discard as burn-in.
     - thin: int, Thinning factor to reduce autocorrelation in samples.
     - extra_keys: list, Additional keys to evaluate from the grid for each sample.
+    - filter_ineq: bool, Filter-our samples inconsistent with inequalities on observables.
 
 
     Returns
@@ -176,7 +178,15 @@ def run_retrieval(
         name_glo = obs["_name"]
     except KeyError:
         name_glo = "Unnamed_planet"
-    obs_glo = {k: deepcopy(v) for k, v in obs.items() if not k[0] == "_"}
+
+    obs_glo = {}
+    for k, v in obs.items():
+        if k[0] == "_":
+            continue
+        if k[1] is None:
+            continue
+        obs_glo[k]= deepcopy(v)
+
     extra_keys = list((set(extra_keys) | set(obs_glo.keys())) - set(gr.input_keys))
 
     # Initialising interpolators on original grid object
@@ -215,10 +225,14 @@ def run_retrieval(
     print("Observables:")
     for k, (obs_val, obs_err) in obs_glo.items():
         obs_val = np.abs(obs_val)
-        if obs_err == '<':
+        if obs_err == '>value':
             print(f"    {k:16s}:    >{obs_val:g}")
-        elif obs_err == '>':
+            if varprops[k].log:
+                obs_glo[k][0] = np.log10(obs_glo[k][0])
+        elif obs_err == '<value':
             print(f"    {k:16s}:    <{obs_val:g}")
+            if varprops[k].log:
+                obs_glo[k][0] = np.log10(obs_glo[k][0])
         else:
             obs_err = np.abs(obs_err)
             if np.isscalar(obs_err):
@@ -241,7 +255,7 @@ def run_retrieval(
     for i, k in enumerate(gr_glo.input_keys):
 
         # centre guess around truth
-        if k in obs_glo.keys() and (obs_glo[k][1] not in ['<', '>']):
+        if k in obs_glo.keys() and (obs_glo[k][1] not in ['<value', '>value']):
             this_ini = np.random.normal(
                 obs_glo[k][0], scale=np.abs(np.median(obs_glo[k][1]))/2, size=n_walkers
             )
@@ -315,19 +329,20 @@ def run_retrieval(
     print("")
 
     # Filter to cases consistent with inequality constraints
-    print("Filtering samples to satisfy inequality constraints")
-    for k in obs_glo.keys():
-        obs_val, obs_err = obs_glo[k]
-        if obs_err == '<': # must be greater than obs_val
-            print(f"    {k} > {obs_val:g}")
-            mask = all_samples[:, all_keys.index(k)] >= obs_val
-            all_samples = all_samples[mask]
-        elif obs_err == '>': # must be less than obs_val
-            print(f"    {k} < {obs_val:g}")
-            mask = all_samples[:, all_keys.index(k)] <= obs_val
-            all_samples = all_samples[mask]
-    print("New sample size after filtering: "+ str(all_samples.shape[0]))
-    print("")
+    if filter_ineq:
+        print("Filtering samples to satisfy inequality constraints")
+        for k in obs_glo.keys():
+            obs_val, obs_err = obs_glo[k]
+            if obs_err == '>value': # must be greater than obs_val
+                print(f"    {k} > {obs_val:g}")
+                mask = all_samples[:, all_keys.index(k)] >= obs_val
+                all_samples = all_samples[mask]
+            elif obs_err == '<value': # must be less than obs_val
+                print(f"    {k} < {obs_val:g}")
+                mask = all_samples[:, all_keys.index(k)] <= obs_val
+                all_samples = all_samples[mask]
+        print("New sample size after filtering: "+ str(all_samples.shape[0]))
+        print("")
 
     print("    Quantity    :    Median         (Uncertainty)             Autocorrelation")
     for i, key in enumerate(all_keys):
@@ -409,11 +424,11 @@ def write_truth(fpath: str) -> str:
         obs_val = redimen(obs_val, k)
         obs_val = f"{obs_val:g}"
 
-        if obs_err == '<':
+        if obs_err == '>value':
             obs_err_plu = ">value"
             obs_err_min = "-"
 
-        elif obs_err == '>':
+        elif obs_err == '<value':
             obs_err_plu = "<value"
             obs_err_min = "-"
 
@@ -504,8 +519,15 @@ def plot_corner(keys: list, samples: np.ndarray, save: str = None, show: bool = 
         except KeyError:
             axes_truths.append(None)
 
-        axes_range.append([ax_min / 1.15, ax_max * 1.15])
+        expand_fact = 1.15
+        if k.startswith("log"):
+            ax_lim = [10**ax_min/expand_fact, 10**ax_max*expand_fact]
+            ax_lim = np.log10(ax_lim)
+        else:
+            ax_lim = [ax_min / expand_fact, ax_max * expand_fact]
 
+        print(f"    {k:16s}:range [{ax_lim[0]:g}, {ax_lim[1]:g}]")
+        axes_range.append(ax_lim)
         axes_scale.append("log" if varprops[k].log else "linear")
         axes_labels.append(varprops[k].label_short)
 
