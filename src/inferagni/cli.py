@@ -59,7 +59,7 @@ cli.add_command(planet)
 def update(gridname: str|None, force: bool):
     """Download required grid data"""
 
-    from inferagni.data import download_grid, check_grid_needs_update
+    from inferagni.data import check_grid_needs_update, download_grid
 
     if not gridname:
         from inferagni.grid import DEFAULT_GRID

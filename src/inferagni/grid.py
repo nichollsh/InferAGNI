@@ -7,8 +7,9 @@ from textwrap import TextWrapper
 import numpy as np
 import pandas as pd
 
-from .util import calc_scaleheight, print_sep_min, nondimen, varprops
 from .data import DEFAULT_GRID, check_grid_name
+from .util import calc_scaleheight, nondimen, print_sep_min, varprops
+
 
 class Grid:
     def __init__(

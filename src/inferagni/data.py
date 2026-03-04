@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import os
 import hashlib
+import os
 import shutil
-import requests
 import zipfile
+
+import requests
 
 griddata_dir = os.path.join(os.path.dirname(__file__), "data")
 
@@ -63,13 +64,13 @@ def check_grid_needs_update(gridname: str) -> bool:
     fpath = os.path.join(griddata_dir, gridname)
     if not os.path.isdir(fpath):
         print(f"    folder '{fpath}' is missing.")
-        print(f"    update needed: True")
+        print("    update needed: True")
         return True
 
     # Does md5sum.chk exist?
     if not os.path.isfile(os.path.join(fpath, "md5sums.txt")):
-        print(f"    md5sum.chk is missing")
-        print(f"    update needed: True")
+        print("    md5sum.chk is missing")
+        print("    update needed: True")
         return True
 
     # Read expected md5sums
@@ -96,7 +97,7 @@ def check_grid_needs_update(gridname: str) -> bool:
         # Does it exist?
         if not os.path.isfile(fpath):
             print(f"    file '{f}' is missing")
-            print(f"    update needed: True")
+            print("    update needed: True")
             return True
 
         # If it exists, calculate md5 and compare to expected
@@ -110,7 +111,7 @@ def check_grid_needs_update(gridname: str) -> bool:
             if md5sum != expected_md5sums[f]:
                 print(f"    file '{f}' has invalid md5 checksum")
                 print(f"        expected {expected_md5sums[f]}   Got {md5sum}")
-                print(f"    update needed: True")
+                print("    update needed: True")
                 return True
 
     return False

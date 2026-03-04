@@ -6,8 +6,8 @@ from copy import deepcopy
 import matplotlib as mpl
 import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
-from cmcrameri import cm
 import numpy as np
+from cmcrameri import cm
 
 from .grid import Grid
 from .planets import exoplanets, solarsys
@@ -365,7 +365,8 @@ def massrad_2d(
     # choose cmap
     try:
         cmap = varprops[key1].cmap
-    except:
+    except AttributeError as e:
+        print(e)
         print(f"No cmap defined for {key1}")
         cmap = cm.batlow
 

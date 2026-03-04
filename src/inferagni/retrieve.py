@@ -15,8 +15,8 @@ import numpy as np
 import pandas as pd
 
 from .grid import Grid
+from .plot import DPI, samples_color, truth_color
 from .util import print_sep_min, redimen, varprops
-from .plot import DPI, truth_color, samples_color
 
 global gr_glo, obs_glo
 gr_glo: Grid = None
