@@ -189,7 +189,7 @@ zeng_irn = [
 zeng[1.0] = np.array(zeng_irn).T
 
 
-def _load_melting_data(data_dir: str | None = None):
+def load_melting_data(data_dir: str | None = None):
     """Load melting curves from files"""
 
     if not data_dir:
@@ -207,6 +207,43 @@ def _load_melting_data(data_dir: str | None = None):
 
         meltcurves[cur] = (p, t)
     return meltcurves
+
+def calc_Tdemix(pBar,x):
+    """Calculate the demixing temperature for a given pressure and H2O molar fraction.
+
+    https://www.aanda.org/articles/aa/pdf/2025/11/aa56322-25.pdf
+    Appendix A
+
+    Parameters
+    ----------
+    pBar : float
+        Pressure in bar
+    x : float
+        Molar fraction of H2O in the mixture (0-1)
+
+    Returns
+    -------
+    Tdemix : float
+        Demixing temperature in K
+    """
+
+    P = pBar * 1e-3 # bar -> kbar
+
+    # Table A1 Coefficients
+    a = 1.2035e-4
+    b = 0.5501
+    c = 1.9163e-2
+    d = 0.4498
+    e = -6.2253e-2
+    f = 74.5041
+    g = -3.1495e-4
+    h = 5.0828e6
+    i = 4.0719
+
+    # Fitting function
+    pt1 = (a/np.pi) * 0.5*(b+c*P) / ((x-d)**2 + (0.5*b)**2)
+    pt2 = (e*P**3 + f*P**2 + g*P + h)
+    return pt1*pt2 + i*P
 
 
 # Named exoplanets

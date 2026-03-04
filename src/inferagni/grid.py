@@ -7,7 +7,7 @@ from textwrap import TextWrapper
 import numpy as np
 import pandas as pd
 
-from .util import calc_scaleheight, print_sep_min, undimen, varprops
+from .util import calc_scaleheight, print_sep_min, nondimen, varprops
 from .data import DEFAULT_GRID, check_grid_name
 
 class Grid:
@@ -22,6 +22,7 @@ class Grid:
         # Settings
         self._dtype = np.float32
         self._encoding = "utf-8"
+        self._log_clip = np.finfo(self._dtype).max/100
 
         # Modes for checking strictness about gridpoint convergence
         #     'succ': only consider points with succ > 0 (most strict)
@@ -73,6 +74,7 @@ class Grid:
         # -------------------------
         # interpolators for the whole grid
         self._interp_method = "linear"  # “linear”, “nearest”,   spline methods: “slinear”, “cubic”, “quintic” and “pchip”.
+        self._interp_logscaled = dict() # Whether log-varying quantities return log-scaled values (if True) or dimensionalised values (if False)
         self._interp = dict()  # Instantiated later
 
     def _load_scalars(self, data_dir: str):
@@ -103,7 +105,10 @@ class Grid:
         )
         for k in self._df_results.keys():
             if k.startswith("vmr_"):
-                self._df_results["log_"+k] = np.log10(np.clip(self._df_results[k].values, 1e-30, 1))
+                self._df_results["log_"+k] = np.log10(np.clip(self._df_results[k].values, 1/self._log_clip, 1))
+
+        if "Kzz_max" in self._df_results.columns:
+            self._df_results["log_Kzz_max"] = np.log10(np.clip(self._df_results["Kzz_max"].values, 1/self._log_clip, self._log_clip))
 
         # Merge the dataframes on index
         self.data = pd.merge(self._df_points, self._df_results, on="index")
@@ -283,14 +288,19 @@ class Grid:
         # Return the grid for plotting
         return itp_x, itp_y, itp_z
 
-    def interp_init(self, vkey: str = "r_phot", reinit: bool = False, method: str | None = None):
+    def interp_init(self, vkey: str = "r_phot", reinit: bool = False,
+                    method: str | None = None, logscale: bool = True):
         """Instantiate a regular-grid interpolator of `vkey` the whole parameter space.
+
+        The interpolator is constructed on non-dimensionalised and log-scaled values (if applicable).
+        Use `interp_eval` to evaluate the non-dimensionalised value.
 
         Parameters
         -----------
         - vkey : str, The name of the variable to interpolate (e.g. "r_phot").
         - reinit : bool, If True, re-initialise the interpolator even if it already exists.
         - method : str | None, The interpolation method to use. Uses default method if None
+        - logscale : bool, If True, log-scale the variable if applicable.
         """
 
         from scipy.interpolate import RegularGridInterpolator
@@ -313,7 +323,7 @@ class Grid:
 
             # scale data
             xx = np.array(gp, copy=True, dtype=self._dtype)
-            xx = undimen(gp, k)
+            xx = nondimen(gp, k)
 
             # store
             xyz.append(xx)
@@ -329,8 +339,11 @@ class Grid:
             raise KeyError(f"Cannot find {vkey} in input dataset. Typo?")
 
         # arrange value to be interpolated
-        v = undimen(self.data[vkey].values, vkey)
+        v = nondimen(self.data[vkey].values, vkey)
         v = np.array(v, copy=True, dtype=self._dtype)
+        v_logscaled =  varprops[vkey].log and logscale
+        if v_logscaled:
+            v = np.log10(np.clip(v, 1/self._log_clip, self._log_clip))
         v_g = np.reshape(v, xyz_g[0].shape)
         # print(f"    min {np.amin(v_g)}, max {np.amax(v_g)}")
 
@@ -339,11 +352,15 @@ class Grid:
         self._interp[vkey] = RegularGridInterpolator(
             xyz, v_g, fill_value=None, bounds_error=False, method=method
         )
+        self._interp_logscaled[vkey] = v_logscaled
 
         print("    Interpolator ready")
 
-    def interp_eval(self, loc: dict | list, vkey: str = "r_phot", method: str | None = None):
-        """Evalulate the interpolator at a single location in parameter space.
+    def interp_eval(self, loc: dict | list, vkey: str = "r_phot",
+                    method: str | None = None):
+        """Evaulate the interpolator at a single location in parameter space.
+
+        Returns non-dimensionalised value, but removes the log-scaling where appropriate.
 
         Parameters
         ------------
@@ -372,7 +389,14 @@ class Grid:
 
         # scale inputs
         for i, k in enumerate(self.input_keys):
-            eval_loc[i] = undimen(eval_loc[i], k)
+            eval_loc[i] = nondimen(eval_loc[i], k)
 
-        # Evaluate and return the scaled value
-        return float(self._interp[vkey](eval_loc, method=eval_method)[0])
+        # evaluate non-dimensionalised value
+        val = self._dtype(self._interp[vkey](eval_loc, method=eval_method)[0])
+
+        # remove log-scaling
+        if self._interp_logscaled[vkey]:
+            val = 10**val
+
+        # Evaluate and return the non-dimensionalised value
+        return float(val)

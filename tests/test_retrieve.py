@@ -50,7 +50,7 @@ def test_retrieve_likelihood(tmp_path):
     # Test write_csv uses globals and returns a file path
     keys = list(gr.input_keys)[:3]
     samples = np.tile(theta[: len(keys)], (5, 1))
-    out = retrieve.write_csv(keys, samples, str(tmp_path / "samples.csv"))
+    out = retrieve.write_result(keys, samples, str(tmp_path / "samples.csv"))
     assert os.path.isfile(out)
 
 
@@ -90,7 +90,7 @@ def test_retrieve_run(tmp_path):
         assert k in keys
 
     # cleanup: write csv to tmp_path
-    out = retrieve.write_csv(keys[:3], samples[:, :3], str(tmp_path / "run_samples.csv"))
+    out = retrieve.write_result(keys[:3], samples[:, :3], str(tmp_path / "run_samples.csv"))
     assert os.path.exists(out)
     with open(out, "r") as h:
         txt = h.read()

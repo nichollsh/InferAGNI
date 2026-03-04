@@ -25,7 +25,7 @@ name_glo: str = "Unnamed_planet"
 
 DEFAULT_THIN: int = 5
 DEFAULT_STEPS: int = 4000
-DEFAULT_BURNFRAC: float = 0.2
+DEFAULT_BURNFRAC: float = 0.02
 
 
 def log_prior(theta: list):

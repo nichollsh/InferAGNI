@@ -40,7 +40,7 @@ def get_obs(name: str, quiet:bool=False) -> dict:
         quiet or print(f"Found observations for Solar System planet {name}")
 
     else:
-        print(f"Planet '{name}' not found in database")
+        print(f"Planet '{name}' not found in databases")
         return obs_pl
 
     # get parameters

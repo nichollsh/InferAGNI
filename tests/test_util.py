@@ -24,12 +24,12 @@ def test_getclose_and_latexify():
 
 
 @pytest.mark.unit
-def test_undimen_redimen_roundtrip_and_errors():
+def test_nondimen_redimen_roundtrip_and_errors():
     key = "r_phot"
     arr = [1.0, 2.0, 3.0]
-    u = util.undimen(arr, key)
+    u = util.nondimen(arr, key)
     r = util.redimen(u, key)
     assert np.allclose(r, np.array(arr))
 
     with pytest.raises(KeyError):
-        util.undimen([1.0], "no_such_key")
+        util.nondimen([1.0], "no_such_key")

@@ -24,13 +24,15 @@ def calc_scaleheight(t, mu, g):
     return Rgas * t / (mu * g)
 
 
-# Get closest value
 def getclose(arr, val):
+    """Return the closest value in arr to val"""
     iclose = np.argmin(np.abs(np.array(arr) - val))
     return float(arr[iclose])
 
 
-def latexify(s):
+def latexify(s: str) -> str:
+    """Convert a molecule name to LaTeX format, e.g. H2O -> H$_2$O"""
+
     latex = ""
     for c in s:
         if c.isnumeric():
@@ -38,7 +40,6 @@ def latexify(s):
         else:
             latex += c
     return latex
-
 
 class GridVar:
     def __init__(self, scale, log, label, label_short, cmap):
@@ -89,6 +90,7 @@ varprops = {
     "g_phot"        : GridVar(1,         True   ,r"Phot. gravity [m$^2$/s]",    r"$g_\text{p}$ [m$^2$/s]", cm.devon_r),
     "H_phot"        : GridVar(1/1e3,     True   ,r"Phot. scale height [km]",    r"$H_\text{p}$ [km]", cm.batlow),
 
+    "log_Kzz_max"   : GridVar(1.0,       False  ,r"Maximum log $K_{zz}$ [cm$^2$/s]",r"$\log_{10}(K_{zz}^\text{max})$ [cm$^2$/s]", cm.acton),
     "Kzz_max"       : GridVar(1e4,       True   ,r"Maximum $K_{zz}$ [cm$^2$/s]",    r"$K_{zz}^\text{max}$ [cm$^2$/s]", cm.acton),
     "conv_pbot"     : GridVar(1/bar,     True   ,r"Convection bottom [bar]",        r"$p_c^b$ [bar]", cm.acton),
     "conv_ptop"     : GridVar(1/bar,     True   ,r"Convection top [bar]",           r"$p_c^t$ [bar]", cm.acton),
@@ -130,14 +132,13 @@ gas_colors = {
     "NH3": "#675200",
 }
 
-gases = list(gas_colors.keys())
-for gas in gases:
+for gas in gas_colors.keys():
     latex = latexify(gas)
     varprops[f"vmr_{gas}"]     = GridVar(1, True,  f"{latex} VMR",                r"$\chi$"+latex, cm.glasgow)
     varprops[f"log_vmr_{gas}"] = GridVar(1, False, r"log$_{10}$" + f"{latex} VMR", r"log$_{10}(\chi$" + latex + r"$)$", cm.glasgow)
 
 
-def undimen(arr, key: str):
+def nondimen(arr, key: str):
     """Return the un-dimensionalised form of an array"""
 
     if key not in varprops.keys():
