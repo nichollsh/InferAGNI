@@ -16,6 +16,9 @@ keywords = [
     "Astronomy",
     "Exoplanets",
     "Model-coupling",
+    "Bayesian Inference",
+    "MCMC",
+    "Retrieval",
 ]
 license = "GPL-3.0-or-later"
 classifiers = [

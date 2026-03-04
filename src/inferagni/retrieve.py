@@ -319,14 +319,33 @@ def run_retrieval(
         if varprops[k].log:
             samples[:, i] = 10 ** (samples[:, i])
 
+    # Evaluate extra keys from the grid for each sample...
     print(f"Postprocessing grid with extra keys: {extra_keys}")
     output_samples = []
-    for i, sam in enumerate(samples):
-        output_samples.append([gr_glo.interp_eval(sam, vkey=k) for k in extra_keys])
+
+    # Without multiprocessing, this is a simple loop:
+    if n_procs <= 1:
+        for k in extra_keys:
+            output_samples.append([gr_glo.interp_eval(sam, vkey=k) for sam in samples])
+        output_samples = np.array(output_samples).T
+
+    # With multiprocessing, we define a helper function and map it across extra_keys
+    else:
+        global _postproc
+        def _postproc(k):
+            return [gr_glo.interp_eval(sam, vkey=k) for sam in samples]
+
+        with mp.Pool(processes=n_procs) as pool:
+            ans = pool.map(_postproc,extra_keys)
+        output_samples = np.array([np.array(ans[i]) for i in range(len(extra_keys))]).T
+
+    # combine postproc with original samples, and construct keys list
     all_samples = np.hstack([samples, output_samples])
     all_keys = list(gr_glo.input_keys) + extra_keys
+
     print("    done")
     print("")
+
 
     # Filter to cases consistent with inequality constraints
     if filter_ineq:

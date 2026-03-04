@@ -399,4 +399,4 @@ class Grid:
             val = 10**val
 
         # Evaluate and return the non-dimensionalised value
-        return float(val)
+        return self._dtype(val)
