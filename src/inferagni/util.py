@@ -41,6 +41,7 @@ def latexify(s: str) -> str:
             latex += c
     return latex
 
+
 class GridVar:
     def __init__(self, scale, log, label, label_short, cmap):
         self.scale = float(scale)
@@ -134,8 +135,14 @@ gas_colors = {
 
 for gas in gas_colors.keys():
     latex = latexify(gas)
-    varprops[f"vmr_{gas}"]     = GridVar(1, True,  f"{latex} VMR",                r"$\chi$"+latex, cm.glasgow)
-    varprops[f"log_vmr_{gas}"] = GridVar(1, False, r"log$_{10}$" + f"{latex} VMR", r"log$_{10}(\chi$" + latex + r"$)$", cm.glasgow)
+    varprops[f"vmr_{gas}"] = GridVar(1, True, f"{latex} VMR", r"$\chi$" + latex, cm.glasgow)
+    varprops[f"log_vmr_{gas}"] = GridVar(
+        1,
+        False,
+        r"log$_{10}$" + f"{latex} VMR",
+        r"log$_{10}(\chi$" + latex + r"$)$",
+        cm.glasgow,
+    )
 
 
 def nondimen(arr, key: str):

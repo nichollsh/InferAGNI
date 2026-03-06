@@ -73,9 +73,11 @@ def log_likelihood(theta: list) -> float:
     ln_L = 0.0
 
     # Check if this regime is physical in the grid, Log(0) for unphysical regimes
-    if ('succ' in gr_glo._succ_mode) and (gr_glo.interp_eval(theta_eval, vkey="succ") < 0.5):
+    if ("succ" in gr_glo._succ_mode) and (gr_glo.interp_eval(theta_eval, vkey="succ") < 0.5):
         return -np.inf
-    if ('fmed' in gr_glo._succ_mode) and (gr_glo.interp_eval(theta_eval, vkey="flux_loss_med") > gr_glo._flux_loss_crit):
+    if ("fmed" in gr_glo._succ_mode) and (
+        gr_glo.interp_eval(theta_eval, vkey="flux_loss_med") > gr_glo._flux_loss_crit
+    ):
         return -np.inf
 
     # Iterate through observables to handle potential asymmetry
@@ -86,11 +88,11 @@ def log_likelihood(theta: list) -> float:
             model_val = np.log10(model_val)
 
         # Obs_err can be a scalar, or a size-2 tuple
-        if obs_err == '>value': # must be greater than obs_val
+        if obs_err == ">value":  # must be greater than obs_val
             if model_val < obs_val:
                 return -np.inf  # Log(0)
 
-        elif obs_err == '<value': # must be less than obs_val
+        elif obs_err == "<value":  # must be less than obs_val
             if model_val > obs_val:
                 return -np.inf  # Log(0)
 
@@ -185,17 +187,17 @@ def run_retrieval(
             continue
         if k[1] is None:
             continue
-        obs_glo[k]= deepcopy(v)
+        obs_glo[k] = deepcopy(v)
 
     extra_keys = list((set(extra_keys) | set(obs_glo.keys())) - set(gr.input_keys))
 
     # Initialising interpolators on original grid object
     print("Prepare interpolators")
     #    required
-    if 'succ' in gr._succ_mode:
-        gr.interp_init(vkey="succ",method='nearest')
-    if 'fmed' in gr._succ_mode:
-        gr.interp_init(vkey="flux_loss_med",method='linear')
+    if "succ" in gr._succ_mode:
+        gr.interp_init(vkey="succ", method="nearest")
+    if "fmed" in gr._succ_mode:
+        gr.interp_init(vkey="flux_loss_med", method="linear")
     #    optional
     for k in set(extra_keys) | set(gr.input_keys):
         gr.interp_init(vkey=k, reinit=False)
@@ -225,11 +227,11 @@ def run_retrieval(
     print("Observables:")
     for k, (obs_val, obs_err) in obs_glo.items():
         obs_val = np.abs(obs_val)
-        if obs_err == '>value':
+        if obs_err == ">value":
             print(f"    {k:16s}:    >{obs_val:g}")
             if varprops[k].log:
                 obs_glo[k][0] = np.log10(obs_glo[k][0])
-        elif obs_err == '<value':
+        elif obs_err == "<value":
             print(f"    {k:16s}:    <{obs_val:g}")
             if varprops[k].log:
                 obs_glo[k][0] = np.log10(obs_glo[k][0])
@@ -253,11 +255,10 @@ def run_retrieval(
     theta_ini = []
     print("Initial guesses for parameters:")
     for i, k in enumerate(gr_glo.input_keys):
-
         # centre guess around truth
-        if k in obs_glo.keys() and (obs_glo[k][1] not in ['<value', '>value']):
+        if k in obs_glo.keys() and (obs_glo[k][1] not in ["<value", ">value"]):
             this_ini = np.random.normal(
-                obs_glo[k][0], scale=np.abs(np.median(obs_glo[k][1]))/2, size=n_walkers
+                obs_glo[k][0], scale=np.abs(np.median(obs_glo[k][1])) / 2, size=n_walkers
             )
 
         # otherwise use uniform guess
@@ -332,11 +333,12 @@ def run_retrieval(
     # With multiprocessing, we define a helper function and map it across extra_keys
     else:
         global _postproc
+
         def _postproc(k):
             return [gr_glo.interp_eval(sam, vkey=k) for sam in samples]
 
         with mp.Pool(processes=n_procs) as pool:
-            ans = pool.map(_postproc,extra_keys)
+            ans = pool.map(_postproc, extra_keys)
         output_samples = np.array([np.array(ans[i]) for i in range(len(extra_keys))]).T
 
     # combine postproc with original samples, and construct keys list
@@ -346,21 +348,20 @@ def run_retrieval(
     print("    done")
     print("")
 
-
     # Filter to cases consistent with inequality constraints
     if filter_ineq:
         print("Filtering samples to satisfy inequality constraints")
         for k in obs_glo.keys():
             obs_val, obs_err = obs_glo[k]
-            if obs_err == '>value': # must be greater than obs_val
+            if obs_err == ">value":  # must be greater than obs_val
                 print(f"    {k} > {obs_val:g}")
                 mask = all_samples[:, all_keys.index(k)] >= obs_val
                 all_samples = all_samples[mask]
-            elif obs_err == '<value': # must be less than obs_val
+            elif obs_err == "<value":  # must be less than obs_val
                 print(f"    {k} < {obs_val:g}")
                 mask = all_samples[:, all_keys.index(k)] <= obs_val
                 all_samples = all_samples[mask]
-        print("New sample size after filtering: "+ str(all_samples.shape[0]))
+        print("New sample size after filtering: " + str(all_samples.shape[0]))
         print("")
 
     print("    Quantity    :    Median         (Uncertainty)             Autocorrelation")
@@ -412,7 +413,6 @@ def write_result(keys: list, samples: np.ndarray, fpath: str) -> str:
         hdl.write(f"# {header} \n")
         df.to_csv(hdl, sep=",", index=False)
 
-
     print("    done")
     return fpath
 
@@ -432,28 +432,27 @@ def write_truth(fpath: str) -> str:
 
     print(f"Writing truths to '{fpath}'")
 
-
     # construct dataframe and save to csv
     data = []
     for k in obs_glo.keys():
         obs_val, obs_err = deepcopy(obs_glo[k])
 
         if varprops[k].log:
-            obs_val = 10 ** obs_val
+            obs_val = 10**obs_val
         obs_val = redimen(obs_val, k)
         obs_val = f"{obs_val:g}"
 
-        if obs_err == '>value':
+        if obs_err == ">value":
             obs_err_plu = ">value"
             obs_err_min = "-"
 
-        elif obs_err == '<value':
+        elif obs_err == "<value":
             obs_err_plu = "<value"
             obs_err_min = "-"
 
         else:
             if varprops[k].log:
-                obs_err = 10 ** obs_err
+                obs_err = 10**obs_err
             obs_err = redimen(obs_err, k)
             if np.isscalar(obs_err):
                 obs_err_plu = f"{obs_err:g}"
@@ -540,7 +539,7 @@ def plot_corner(keys: list, samples: np.ndarray, save: str = None, show: bool = 
 
         expand_fact = 1.15
         if k.startswith("log"):
-            ax_lim = [10**ax_min/expand_fact, 10**ax_max*expand_fact]
+            ax_lim = [10**ax_min / expand_fact, 10**ax_max * expand_fact]
             ax_lim = np.log10(ax_lim)
         else:
             ax_lim = [ax_min / expand_fact, ax_max * expand_fact]

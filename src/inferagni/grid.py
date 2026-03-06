@@ -17,13 +17,13 @@ class Grid:
         gridname: str | None = None,
         emits: bool = True,
         profs: bool = True,
-        succ_mode: list | str = "none"
+        succ_mode: list | str = "none",
     ):
 
         # Settings
         self._dtype = np.float32
         self._encoding = "utf-8"
-        self._log_clip = np.finfo(self._dtype).max/100
+        self._log_clip = np.finfo(self._dtype).max / 100
 
         # Modes for checking strictness about gridpoint convergence
         #     'succ': only consider points with succ > 0 (most strict)
@@ -32,7 +32,7 @@ class Grid:
         if isinstance(succ_mode, str):
             succ_mode = [succ_mode]
         self._succ_mode = set([s.lower() for s in succ_mode])
-        self._flux_loss_crit = 1.0 # W/m^2
+        self._flux_loss_crit = 1.0  # W/m^2
 
         # scalar data (stored as scaled values)
         self._df_points = None  # Dataframe of the grid points (input)
@@ -75,7 +75,7 @@ class Grid:
         # -------------------------
         # interpolators for the whole grid
         self._interp_method = "linear"  # “linear”, “nearest”,   spline methods: “slinear”, “cubic”, “quintic” and “pchip”.
-        self._interp_logscaled = dict() # Whether log-varying quantities return log-scaled values (if True) or dimensionalised values (if False)
+        self._interp_logscaled = dict()  # Whether log-varying quantities return log-scaled values (if True) or dimensionalised values (if False)
         self._interp = dict()  # Instantiated later
 
     def _load_scalars(self, data_dir: str):
@@ -90,14 +90,18 @@ class Grid:
 
         # Read the grid point definition file
         self._df_points = pd.read_csv(
-            os.path.join(data_dir, "gridpoints.csv"), sep=",", dtype=self._dtype,
-            encoding=self._encoding
+            os.path.join(data_dir, "gridpoints.csv"),
+            sep=",",
+            dtype=self._dtype,
+            encoding=self._encoding,
         )
 
         # Read the consolidated results file
         self._df_results = pd.read_csv(
-            os.path.join(data_dir, "consolidated_table.csv"), sep=",", dtype=self._dtype,
-            encoding=self._encoding
+            os.path.join(data_dir, "consolidated_table.csv"),
+            sep=",",
+            dtype=self._dtype,
+            encoding=self._encoding,
         )
 
         # Derive some observables
@@ -106,10 +110,14 @@ class Grid:
         )
         for k in self._df_results.keys():
             if k.startswith("vmr_"):
-                self._df_results["log_"+k] = np.log10(np.clip(self._df_results[k].values, 1/self._log_clip, 1))
+                self._df_results["log_" + k] = np.log10(
+                    np.clip(self._df_results[k].values, 1 / self._log_clip, 1)
+                )
 
         if "Kzz_max" in self._df_results.columns:
-            self._df_results["log_Kzz_max"] = np.log10(np.clip(self._df_results["Kzz_max"].values, 1/self._log_clip, self._log_clip))
+            self._df_results["log_Kzz_max"] = np.log10(
+                np.clip(self._df_results["Kzz_max"].values, 1 / self._log_clip, self._log_clip)
+            )
 
         # Merge the dataframes on index
         self.data = pd.merge(self._df_points, self._df_results, on="index")
@@ -171,8 +179,7 @@ class Grid:
             dtype=float,
             delimiter=",",
             converters=lambda x: 0 if x == "index" else float(x),
-            encoding=self._encoding
-
+            encoding=self._encoding,
         )
         self.emits_wl = np.array(emit_dat[0, 1:], copy=True, dtype=self._dtype)
         self.emits_fl = np.array(emit_dat[1:, 1:], copy=True, dtype=self._dtype)
@@ -289,8 +296,13 @@ class Grid:
         # Return the grid for plotting
         return itp_x, itp_y, itp_z
 
-    def interp_init(self, vkey: str = "r_phot", reinit: bool = False,
-                    method: str | None = None, logscale: bool = True):
+    def interp_init(
+        self,
+        vkey: str = "r_phot",
+        reinit: bool = False,
+        method: str | None = None,
+        logscale: bool = True,
+    ):
         """Instantiate a regular-grid interpolator of `vkey` the whole parameter space.
 
         The interpolator is constructed on non-dimensionalised and log-scaled values (if applicable).
@@ -342,9 +354,9 @@ class Grid:
         # arrange value to be interpolated
         v = nondimen(self.data[vkey].values, vkey)
         v = np.array(v, copy=True, dtype=self._dtype)
-        v_logscaled =  varprops[vkey].log and logscale
+        v_logscaled = varprops[vkey].log and logscale
         if v_logscaled:
-            v = np.log10(np.clip(v, 1/self._log_clip, self._log_clip))
+            v = np.log10(np.clip(v, 1 / self._log_clip, self._log_clip))
         v_g = np.reshape(v, xyz_g[0].shape)
         # print(f"    min {np.amin(v_g)}, max {np.amax(v_g)}")
 
@@ -357,8 +369,7 @@ class Grid:
 
         print("    Interpolator ready")
 
-    def interp_eval(self, loc: dict | list, vkey: str = "r_phot",
-                    method: str | None = None):
+    def interp_eval(self, loc: dict | list, vkey: str = "r_phot", method: str | None = None):
         """Evaulate the interpolator at a single location in parameter space.
 
         Returns non-dimensionalised value, but removes the log-scaling where appropriate.

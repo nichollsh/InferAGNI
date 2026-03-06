@@ -208,7 +208,8 @@ def load_melting_data(data_dir: str | None = None):
         meltcurves[cur] = (p, t)
     return meltcurves
 
-def calc_Tdemix(pBar,x):
+
+def calc_Tdemix(pBar, x):
     """Calculate the demixing temperature for a given pressure and H2O molar fraction.
 
     https://www.aanda.org/articles/aa/pdf/2025/11/aa56322-25.pdf
@@ -227,7 +228,7 @@ def calc_Tdemix(pBar,x):
         Demixing temperature in K
     """
 
-    P = pBar * 1e-3 # bar -> kbar
+    P = pBar * 1e-3  # bar -> kbar
 
     # Table A1 Coefficients
     a = 1.2035e-4
@@ -241,33 +242,30 @@ def calc_Tdemix(pBar,x):
     i = 4.0719
 
     # Fitting function
-    pt1 = (a/np.pi) * 0.5*(b+c*P) / ((x-d)**2 + (0.5*b)**2)
-    pt2 = (e*P**3 + f*P**2 + g*P + h)
-    return pt1*pt2 + i*P
+    pt1 = (a / np.pi) * 0.5 * (b + c * P) / ((x - d) ** 2 + (0.5 * b) ** 2)
+    pt2 = e * P**3 + f * P**2 + g * P + h
+    return pt1 * pt2 + i * P
 
 
 # Named exoplanets
 exo_named = [
-        "TRAPPIST-1",
-        "L 98-59",
-        "TOI-561",
-        "K2-18",
-        "GJ 1214",
-        "55 Cnc",
-        "TOI-270",
-        "GJ 9827",
-        "LP 791-18",
-    ]
+    "TRAPPIST-1",
+    "L 98-59",
+    "TOI-561",
+    "K2-18",
+    "GJ 1214",
+    "55 Cnc",
+    "TOI-270",
+    "GJ 9827",
+    "LP 791-18",
+]
 exo_cmap = plt.get_cmap("Accent")
-exo_colors = [exo_cmap(x) for x in np.linspace(0,1,len(exo_named))]
+exo_colors = [exo_cmap(x) for x in np.linspace(0, 1, len(exo_named))]
 
 flux_loss_crit = 1.0
 
-left_align = ["T1","L98-59","piMen"]
-replace_planets = {"TRAPPIST-1":"T1",
-                   "Cnc A":"Cnc",
-                   "TOI-421 A":"TOI-421",
-                   " ":""}
+left_align = ["T1", "L98-59", "piMen"]
+replace_planets = {"TRAPPIST-1": "T1", "Cnc A": "Cnc", "TOI-421 A": "TOI-421", " ": ""}
 
 mass_ticks = [0.8, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 7, 8.0, 10.0]
 radius_ticks = [0.8, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 6.0, 7.0]
@@ -292,12 +290,12 @@ def massrad_2d(
 
     # crop to successful runs (succ==1)
     if "flux_loss_med" in subdata.keys():
-        subdata = subdata[np.abs(subdata['flux_loss_med']) < flux_loss_crit]
+        subdata = subdata[np.abs(subdata["flux_loss_med"]) < flux_loss_crit]
     else:
         subdata = subdata[subdata["succ"] == 1]
 
     # crop to bound atmospheres
-    subdata = subdata[(subdata['r_bound'] < 0.0) | (subdata['r_bound'] > subdata['r_phot'])]
+    subdata = subdata[(subdata["r_bound"] < 0.0) | (subdata["r_bound"] > subdata["r_phot"])]
 
     print("Plot mass-radius 2D plane")
 
@@ -343,24 +341,21 @@ def massrad_2d(
 
     # create figure object
     figscale = 1.2
-    fig, ax = plt.subplots(
-        1, 1, figsize=(5 * figscale, 4 * figscale),  num="Mass-Radius 2D"
-    )
+    fig, ax = plt.subplots(1, 1, figsize=(5 * figscale, 4 * figscale), num="Mass-Radius 2D")
 
     # configure...
     xlim = [mass_ticks[0], mass_ticks[-1]]
     ylim = [radius_ticks[0], radius_ticks[-1]]
-    s    = 16
-    sn   = 35
-    ec   = 'grey'
-    lw   = 0.8
+    s = 16
+    sn = 35
+    ec = "grey"
+    lw = 0.8
     sm2_min = 0.5
     sm2_max = 3.2
-    text_pe = [pe.Stroke(linewidth=1.0, foreground='k'), pe.Normal()]
+    text_pe = [pe.Stroke(linewidth=1.0, foreground="k"), pe.Normal()]
     text_fs = 10.5
     planet_legend = False
     iso_alp = 0.6
-
 
     # choose cmap
     try:
@@ -372,7 +367,7 @@ def massrad_2d(
 
     # colorbar map, for key1
     zunit = varprops[key1].scale
-    vmin, vmax = np.amin(subdata[key1])*zunit, np.amax(subdata[key1])*zunit
+    vmin, vmax = np.amin(subdata[key1]) * zunit, np.amax(subdata[key1]) * zunit
     if "vmr_" in key1:
         vmin = max(vmin, vmr_min)
     print(f"vmin:{vmin}    vmax:{vmax}")
@@ -380,7 +375,7 @@ def massrad_2d(
     if num_z < 2:
         print(f"Warning: only 1 unique value for {key1} \n")
         return False
-    if varprops[key1].log: # log scale
+    if varprops[key1].log:  # log scale
         nm1 = mpl.colors.LogNorm(vmin=vmin, vmax=vmax)
     else:
         nm1 = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
@@ -394,8 +389,9 @@ def massrad_2d(
         if len(v2_uni) < 2:
             print(f"Warning: only 1 unique value for {key2} \n")
             return False
+
         def sm2(_v):
-            _vn = (_v-np.amin(v2_uni))/(np.amax(v2_uni) - np.amin(v2_uni))
+            _vn = (_v - np.amin(v2_uni)) / (np.amax(v2_uni) - np.amin(v2_uni))
             return _vn * (sm2_max - sm2_min) + sm2_min
 
     # echo
@@ -448,11 +444,11 @@ def massrad_2d(
     # Plot grid as lines of constant key
     isolines = np.unique(subdata[key1])
     if show_isolines:
-        ax.plot([],[],label="Grid isolines",lw=lw, color='grey')
+        ax.plot([], [], label="Grid isolines", lw=lw, color="grey")
         # for each key1
         for u in isolines:
-            df = subdata[subdata[key1] == u] # get rows with key= this value
-            u1 = u*zunit
+            df = subdata[subdata[key1] == u]  # get rows with key= this value
+            u1 = u * zunit
             col = sm1.to_rgba(u1)
             iso_alp
 
@@ -461,19 +457,26 @@ def massrad_2d(
                 for u2 in np.unique(df[key2]):
                     df2 = df[df[key2] == u2]
                     xx = np.array(df2["mass_tot"].values)
-                    yy = np.array(df2["r_phot"].values)/R_earth
+                    yy = np.array(df2["r_phot"].values) / R_earth
 
-                    mask_srt = np.argsort(xx) # sort them in ascending mass order
+                    mask_srt = np.argsort(xx)  # sort them in ascending mass order
                     if varprops[key2].log:
                         scl = sm2(np.log10(u2))
                     else:
                         scl = sm2(u2)
-                    ax.plot(xx[mask_srt],yy[mask_srt], zorder=300, color=col, alpha=iso_alp, lw=lw*scl)
+                    ax.plot(
+                        xx[mask_srt],
+                        yy[mask_srt],
+                        zorder=300,
+                        color=col,
+                        alpha=iso_alp,
+                        lw=lw * scl,
+                    )
             else:
                 xx = np.array(df["mass_tot"].values)
-                yy = np.array(df["r_phot"].values)/R_earth
-                mask_srt = np.argsort(xx) # sort them in ascending mass order
-                ax.plot(xx[mask_srt],yy[mask_srt], zorder=300, color=col, alpha=iso_alp, lw=lw)
+                yy = np.array(df["r_phot"].values) / R_earth
+                mask_srt = np.argsort(xx)  # sort them in ascending mass order
+                ax.plot(xx[mask_srt], yy[mask_srt], zorder=300, color=col, alpha=iso_alp, lw=lw)
 
     # Zeng2019 curves without atmospheres
     col = "blue"
@@ -496,7 +499,6 @@ def massrad_2d(
         zorder=0,
         rasterized=True,
     )
-
 
     for j, s in enumerate(exo_named):
         col = exo_colors[j]
@@ -633,9 +635,17 @@ def massrad_2d(
         for k, v in controls.items():
             anno += f"{varprops[k].label}={v}\n"
         anno = anno[:-1]
-        ax.text(0.02, 0.98, anno, transform=ax.transAxes, fontsize=text_fs+1, ha='left',va='top',
-                zorder=9999, bbox=dict(facecolor='w', alpha=0.7, edgecolor='none',pad=0.1))
-
+        ax.text(
+            0.02,
+            0.98,
+            anno,
+            transform=ax.transAxes,
+            fontsize=text_fs + 1,
+            ha="left",
+            va="top",
+            zorder=9999,
+            bbox=dict(facecolor="w", alpha=0.7, edgecolor="none", pad=0.1),
+        )
 
     # legend
     if show_legend:
@@ -650,12 +660,11 @@ def massrad_2d(
         )
         leg.set_zorder(99999)
 
-
     # show and save
     fig.tight_layout()
     if save:
         print(f"    Saving plot to '{save}'")
-        fig.savefig(save, bbox_inches="tight",dpi=DPI)
+        fig.savefig(save, bbox_inches="tight", dpi=DPI)
     if show:
         print("    Showing plot GUI")
         plt.show()

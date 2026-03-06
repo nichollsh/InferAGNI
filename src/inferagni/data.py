@@ -9,18 +9,24 @@ import requests
 
 griddata_dir = os.path.join(os.path.dirname(__file__), "data")
 
-ZENODO_RECORD="18790976"
+ZENODO_RECORD = "18790976"
 
 # Expected files
-EXPECTED_FILES = ("base.toml", "md5sums.txt",
-                      "consolidated_emits.csv", "consolidated_profs.nc",
-                      "gridpoints.csv", "consolidated_table.csv")
+EXPECTED_FILES = (
+    "base.toml",
+    "md5sums.txt",
+    "consolidated_emits.csv",
+    "consolidated_profs.nc",
+    "gridpoints.csv",
+    "consolidated_table.csv",
+)
 
 # available grid names
 AVAILABLE_GRIDS = ("grid_018", "grid_022", "grid_023")
 
 # default grid name
 DEFAULT_GRID = "grid_022"
+
 
 def check_grid_name(gridname: str) -> bool:
     """Check if the provided grid name is valid.
@@ -40,6 +46,7 @@ def check_grid_name(gridname: str) -> bool:
         return False
 
     return True
+
 
 def check_grid_needs_update(gridname: str) -> bool:
     """Check if the grid data needs to be updated.
@@ -83,10 +90,8 @@ def check_grid_needs_update(gridname: str) -> bool:
             md5sum, fname = line.split()
             expected_md5sums[fname] = md5sum
 
-
     # Check each file
     for f in EXPECTED_FILES:
-
         # Don't check md5sums.txt itself
         if f == "md5sums.txt":
             continue
@@ -117,7 +122,7 @@ def check_grid_needs_update(gridname: str) -> bool:
     return False
 
 
-def request_filesize(url) -> int|None:
+def request_filesize(url) -> int | None:
     """Request the filesize of a file at a URL.
 
     Parameters
@@ -133,7 +138,7 @@ def request_filesize(url) -> int|None:
         response = requests.head(url)
         response.raise_for_status()
         if "Content-Length" in response.headers:
-            return int(response.headers["Content-Length"])/1e6
+            return int(response.headers["Content-Length"]) / 1e6
         else:
             print(f"Cannot get information about '{url}'")
             return None
@@ -142,12 +147,13 @@ def request_filesize(url) -> int|None:
         print(e)
         return None
 
+
 def download_file(url, destination):
     """Download a file from a URL to a local destination."""
     try:
         with requests.get(url, stream=True) as response:
             response.raise_for_status()
-            with open(destination, 'wb') as f:
+            with open(destination, "wb") as f:
                 for chunk in response.iter_content(chunk_size=2048):
                     f.write(chunk)
 
@@ -156,6 +162,7 @@ def download_file(url, destination):
         return False
 
     return os.path.isfile(destination)
+
 
 def download_grid(gridname: str) -> bool:
     """Download the grid data for the specified grid.
@@ -196,7 +203,7 @@ def download_grid(gridname: str) -> bool:
         return False
 
     # Unzip the file
-    with zipfile.ZipFile(fpath, 'r') as zip_ref:
+    with zipfile.ZipFile(fpath, "r") as zip_ref:
         zip_ref.extractall(os.path.join(griddata_dir, gridname))
 
     # Remove the zip file
@@ -209,8 +216,3 @@ def download_grid(gridname: str) -> bool:
 
     print("    done")
     return True
-
-
-
-
-

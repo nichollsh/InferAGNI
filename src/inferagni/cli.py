@@ -27,14 +27,29 @@ def cli():
 # 'helper' commands
 # ----------------
 
+
 @click.command()
 def listvars():
     """List vars in grid"""
 
     from inferagni.grid import Grid
+
     Grid(emits=False, profs=False)  # this will print information about the vars
 
+
 cli.add_command(listvars)
+
+
+@click.command()
+def listplanets():
+    """List all planets in the databases"""
+
+    from inferagni.planets import list_planets
+
+    list_planets(quiet=False)
+
+
+cli.add_command(listplanets)
 
 
 @click.command()
@@ -45,24 +60,43 @@ def planet(planet_name: str):
     click.echo(f"Looking up '{planet_name}'")
 
     from inferagni.planets import get_obs
+
     get_obs(planet_name)
 
+
 cli.add_command(planet)
+
+
+@click.command()
+@click.argument("system_name", nargs=1)
+def system(system_name: str):
+    """Get observed parameters for a named system"""
+
+    click.echo(f"Looking up '{system_name}'")
+
+    from inferagni.planets import get_sys
+
+    get_sys(system_name)
+
+
+cli.add_command(system)
 
 # ----------------
 # 'downloader' commands
 # ----------------
 
+
 @click.command()
 @click.argument("gridname", nargs=1, default=None)
 @click.option("--force", is_flag=True, help="Force update even if not needed")
-def update(gridname: str|None, force: bool):
+def update(gridname: str | None, force: bool):
     """Download required grid data"""
 
     from inferagni.data import check_grid_needs_update, download_grid
 
     if not gridname:
         from inferagni.grid import DEFAULT_GRID
+
         gridname = DEFAULT_GRID
 
     # check if update is needed
@@ -75,6 +109,7 @@ def update(gridname: str|None, force: bool):
         click.echo("Grid data updated successfully.")
     else:
         click.echo("Failed to update grid data.")
+
 
 cli.add_command(update)
 
@@ -99,7 +134,9 @@ def plot(outdir, zkey, controls):
 
     # check Zkey provided
     if "=" in zkey:
-        click.echo("Zkey should not contain '='. Must be one of the input variables in the grid.")
+        click.echo(
+            "Zkey should not contain '='. Must be one of the input variables in the grid."
+        )
         return
 
     # convert control to dict
@@ -142,8 +179,13 @@ cli.add_command(plot)
 @click.option("--procs", type=int)
 @click.option("--gridname", type=str, default=None)
 def retrieve(
-    outdir: str, planet_name: str, quantities: list,
-    steps=None, walkers=None, procs=None, gridname=None
+    outdir: str,
+    planet_name: str,
+    quantities: list,
+    steps=None,
+    walkers=None,
+    procs=None,
+    gridname=None,
 ):
     """Infer some quantities for a named planet
 
