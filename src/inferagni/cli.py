@@ -177,6 +177,7 @@ cli.add_command(plot)
 @click.option("--steps", type=int)
 @click.option("--walkers", type=int)
 @click.option("--procs", type=int)
+@click.option("--uniform-guess", is_flag=True, help="Enforce usage of random-uniform initial guesses on the parameters")
 @click.option("--gridname", type=str, default=None)
 def retrieve(
     outdir: str,
@@ -185,6 +186,7 @@ def retrieve(
     steps=None,
     walkers=None,
     procs=None,
+    uniform_guess=False,
     gridname=None,
 ):
     """Infer some quantities for a named planet
@@ -232,7 +234,11 @@ def retrieve(
         n_steps=steps,
         n_walkers=walkers,
         n_procs=procs,
+        uniform_guess=uniform_guess,
     )
+
+    if samples is None:
+        return
 
     # make plots
     plot_chain(samples, save=os.path.join(outdir, "retrieve_chain.pdf"), show=False)

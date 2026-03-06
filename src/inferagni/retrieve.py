@@ -24,8 +24,12 @@ obs_glo: dict = None
 name_glo: str = "Unnamed_planet"
 
 DEFAULT_THIN: int = 5
-DEFAULT_STEPS: int = 4000
+DEFAULT_STEPS: int = 5000
 DEFAULT_BURNFRAC: float = 0.02
+
+# Minimum error to avoid zero-uncertainty issues in likelihood
+ERROR_MIN_RTOL = 1e-8
+ERROR_MIN_ATOL = 1e-8
 
 
 def log_prior(theta: list):
@@ -145,6 +149,7 @@ def run_retrieval(
     thin: int | None = None,
     extra_keys: list = [],
     filter_ineq: bool = True,
+    uniform_guess: bool = False,
 ) -> tuple:
     """Executes the MCMC retrieval
 
@@ -159,7 +164,7 @@ def run_retrieval(
     - thin: int, Thinning factor to reduce autocorrelation in samples.
     - extra_keys: list, Additional keys to evaluate from the grid for each sample.
     - filter_ineq: bool, Filter-our samples inconsistent with inequalities on observables.
-
+    - uniform_guess: bool, Enforce usage of random-uniform initial guesses on the parameters.
 
     Returns
     ------------
@@ -226,24 +231,37 @@ def run_retrieval(
     # Check observables (values,errors)
     print("Observables:")
     for k, (obs_val, obs_err) in obs_glo.items():
-        obs_val = np.abs(obs_val)
         if obs_err == ">value":
             print(f"    {k:16s}:    >{obs_val:g}")
             if varprops[k].log:
-                obs_glo[k][0] = np.log10(obs_glo[k][0])
+                obs_glo[k][0] = np.log10(obs_val)
         elif obs_err == "<value":
             print(f"    {k:16s}:    <{obs_val:g}")
             if varprops[k].log:
-                obs_glo[k][0] = np.log10(obs_glo[k][0])
+                obs_glo[k][0] = np.log10(obs_val)
         else:
+            # make sure errors are positive-valued
             obs_err = np.abs(obs_err)
+
+            # make sure errors are finite
+            obs_err_min = ERROR_MIN_ATOL + np.abs(obs_val) * ERROR_MIN_RTOL
+            obs_err_old = deepcopy(obs_err)
+            obs_err = np.clip(obs_err, obs_err_min, np.inf)
+
+            # handle log-scaling of observables
             if np.isscalar(obs_err):
                 print(f"    {k:16s}: {obs_val:10g} ± {obs_err:<10g}")
             else:
                 print(f"    {k:16s}: {obs_val:10g} (+ {obs_err[0]:<10g} - {obs_err[1]:<10g})")
             if varprops[k].log:
-                obs_glo[k][0] = np.log10(obs_glo[k][0])
-                obs_glo[k][1] = np.log10(obs_glo[k][1])
+                obs_glo[k][0] = np.log10(obs_val)
+                obs_glo[k][1] = np.log10(obs_err)
+
+            if not np.all(np.isclose(obs_err, obs_err_old)):
+                print(
+                    f"        Warning: increased error from {obs_err_old} to {obs_err}"
+                )
+
     print("")
 
     # Convert bounds to logarithmic values where appropriate
@@ -256,9 +274,11 @@ def run_retrieval(
     print("Initial guesses for parameters:")
     for i, k in enumerate(gr_glo.input_keys):
         # centre guess around truth
-        if k in obs_glo.keys() and (obs_glo[k][1] not in ["<value", ">value"]):
+        if k in obs_glo.keys() and (obs_glo[k][1] not in ["<value", ">value"]) and not uniform_guess:
+
+            scale = np.abs(np.amax(np.abs(obs_glo[k][1])))
             this_ini = np.random.normal(
-                obs_glo[k][0], scale=np.abs(np.median(obs_glo[k][1])) / 2, size=n_walkers
+                obs_glo[k][0], scale=scale, size=n_walkers
             )
 
         # otherwise use uniform guess
@@ -298,9 +318,22 @@ def run_retrieval(
     # Run sampler
     print(f"Will do {n_steps} steps with {n_walkers} walkers using {n_procs} processes")
     print("Running MCMC retrieval...")
-    with mp.Pool(processes=n_procs) as pool:
-        sampler = emcee.EnsembleSampler(n_walkers, n_dim, log_probability, pool=pool)
-        sampler.run_mcmc(theta_ini, n_steps, progress=True)
+    try:
+        with mp.Pool(processes=n_procs) as pool:
+            sampler = emcee.EnsembleSampler(n_walkers, n_dim, log_probability, pool=pool)
+            sampler.run_mcmc(theta_ini, n_steps, progress=True)
+    except ValueError as e:
+        print(f"Error during MCMC sampling: {e}")
+
+        # suggest possible causes
+        if "large condition number" in str(e):
+            print("This may be due to a poorly-conditioned system, such as:")
+            print("- Too few walkers for the number of parameters")
+            print("- Parameters with vastly different scales")
+            print("- Extremely tight constraints on observables")
+            print("Consider increasing the number of walkers, using a uniform initial guess, or loosening constraints.")
+
+        return None, None
 
     # Estimate autocorrelation
     with contextlib.redirect_stderr(None):
