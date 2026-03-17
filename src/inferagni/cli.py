@@ -112,6 +112,7 @@ def update(gridname: str | None, force: bool):
 
     # download exoplanet data
     from inferagni.planets import _import_exoatlas_silently
+
     click.echo("Updating exoplanet data...")
     if _import_exoatlas_silently():
         click.echo("Exoplanet data updated successfully.")
@@ -185,7 +186,11 @@ cli.add_command(plot)
 @click.option("--steps", type=int)
 @click.option("--walkers", type=int)
 @click.option("--procs", type=int)
-@click.option("--uniform-guess", is_flag=True, help="Enforce usage of random-uniform initial guesses on the parameters")
+@click.option(
+    "--uniform-guess",
+    is_flag=True,
+    help="Enforce usage of random-uniform initial guesses on the parameters",
+)
 @click.option("--gridname", type=str, default=None)
 def retrieve(
     outdir: str,

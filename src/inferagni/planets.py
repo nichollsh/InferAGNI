@@ -34,6 +34,7 @@ def _import_exoatlas_silently():
 
     return ea
 
+
 # Trigger download and filter
 ea = None
 exoplanets = None

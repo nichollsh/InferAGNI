@@ -258,9 +258,7 @@ def run_retrieval(
                 obs_glo[k][1] = np.log10(obs_err)
 
             if not np.all(np.isclose(obs_err, obs_err_old)):
-                print(
-                    f"        Warning: increased error from {obs_err_old} to {obs_err}"
-                )
+                print(f"        Warning: increased error from {obs_err_old} to {obs_err}")
 
     print("")
 
@@ -274,12 +272,13 @@ def run_retrieval(
     print("Initial guesses for parameters:")
     for i, k in enumerate(gr_glo.input_keys):
         # centre guess around truth
-        if k in obs_glo.keys() and (obs_glo[k][1] not in ["<value", ">value"]) and not uniform_guess:
-
+        if (
+            k in obs_glo.keys()
+            and (obs_glo[k][1] not in ["<value", ">value"])
+            and not uniform_guess
+        ):
             scale = np.abs(np.amax(np.abs(obs_glo[k][1])))
-            this_ini = np.random.normal(
-                obs_glo[k][0], scale=scale, size=n_walkers
-            )
+            this_ini = np.random.normal(obs_glo[k][0], scale=scale, size=n_walkers)
 
         # otherwise use uniform guess
         else:
@@ -335,7 +334,9 @@ def run_retrieval(
             print("- Too few walkers for the number of parameters")
             print("- Parameters with vastly different scales")
             print("- Extremely tight constraints on observables")
-            print("Consider increasing the number of walkers, using a uniform initial guess, or loosening constraints.")
+            print(
+                "Consider increasing the number of walkers, using a uniform initial guess, or loosening constraints."
+            )
 
         return None, None
 
