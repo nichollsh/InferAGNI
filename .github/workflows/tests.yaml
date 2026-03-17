@@ -48,7 +48,7 @@ jobs:
 
       - name: Test with pytest
         run: |
-          pytest --cov-report term --cov-report markdown-append:$GITHUB_STEP_SUMMARY --cov=inferagni tests/
+          pytest --cov-report term --cov-report json:coverage.json --cov-report markdown-append:$GITHUB_STEP_SUMMARY --cov=inferagni tests/
 
       - name: Report coverage
         run: |
