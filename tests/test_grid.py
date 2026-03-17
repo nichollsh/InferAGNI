@@ -23,6 +23,6 @@ def test_grid_basic_getpoints_and_interp():
     loc = {k: pts[i][0] for i, k in enumerate(gr.input_keys)}
     val = gr.interp_eval(loc, vkey="r_phot")
 
-    assert isinstance(val, float)
+    assert isinstance(val, float | np.floating)
 
     assert not np.isnan(val)
