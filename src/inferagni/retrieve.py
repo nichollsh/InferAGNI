@@ -319,9 +319,13 @@ def run_retrieval(
     print(f"Will do {n_steps} steps with {n_walkers} walkers using {n_procs} processes")
     print("Running MCMC retrieval...")
     try:
-        with mp.Pool(processes=n_procs) as pool:
-            sampler = emcee.EnsembleSampler(n_walkers, n_dim, log_probability, pool=pool)
+        if n_procs <= 1:
+            sampler = emcee.EnsembleSampler(n_walkers, n_dim, log_probability)
             sampler.run_mcmc(theta_ini, n_steps, progress=True)
+        else:
+            with mp.Pool(processes=n_procs) as pool:
+                sampler = emcee.EnsembleSampler(n_walkers, n_dim, log_probability, pool=pool)
+                sampler.run_mcmc(theta_ini, n_steps, progress=True)
     except ValueError as e:
         print(f"Error during MCMC sampling: {e}")
 
