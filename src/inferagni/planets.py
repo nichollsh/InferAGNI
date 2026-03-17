@@ -9,7 +9,7 @@ from contextlib import redirect_stdout
 os.environ["EXOATLAS_DATA"] = os.path.join(os.path.dirname(__file__), "exoatlas-data")
 
 
-def _import_exoatlas_silently() -> bool:
+def _import_exoatlas_silently():
     """Import exoatlas while suppressing third-party print() spam."""
 
     original_print = builtins.print
@@ -21,15 +21,18 @@ def _import_exoatlas_silently() -> bool:
             ea = importlib.import_module("exoatlas")
 
             global solarsys
-            solarsys = ea.SolarSystem()
+            solarsys_factory = getattr(ea, "SolarSystem", None)
+            solarsys = solarsys_factory() if callable(solarsys_factory) else None
 
             global exoplanets
-            exoplanets = ea.Exoplanets()
-            exoplanets = exoplanets[exoplanets.radius() > 0]
+            exoplanets_factory = getattr(ea, "Exoplanets", None)
+            exoplanets = exoplanets_factory() if callable(exoplanets_factory) else None
+            if exoplanets is not None:
+                exoplanets = exoplanets[exoplanets.radius() > 0]
     finally:
         builtins.print = original_print
 
-    return (ea is not None) and (solarsys is not None) and (exoplanets is not None)
+    return ea
 
 # Trigger download and filter
 ea = None
