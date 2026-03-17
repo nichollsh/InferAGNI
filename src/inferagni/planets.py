@@ -1,17 +1,41 @@
 from __future__ import annotations
 
+import builtins
+import importlib
+import io
 import os
+from contextlib import redirect_stdout
 
 os.environ["EXOATLAS_DATA"] = os.path.join(os.path.dirname(__file__), "exoatlas-data")
 
-import exoatlas as ea
 
-# https://zkbt.github.io/exoatlas/quickstart
+def _import_exoatlas_silently() -> bool:
+    """Import exoatlas while suppressing third-party print() spam."""
+
+    original_print = builtins.print
+    stdout_buffer = io.StringIO()
+    try:
+        builtins.print = lambda *args, **kwargs: None
+        with redirect_stdout(stdout_buffer):
+            global ea
+            ea = importlib.import_module("exoatlas")
+
+            global solarsys
+            solarsys = ea.SolarSystem()
+
+            global exoplanets
+            exoplanets = ea.Exoplanets()
+            exoplanets = exoplanets[exoplanets.radius() > 0]
+    finally:
+        builtins.print = original_print
+
+    return (ea is not None) and (solarsys is not None) and (exoplanets is not None)
+
 # Trigger download and filter
-solarsys = ea.SolarSystem()
-
-exoplanets = ea.Exoplanets()
-exoplanets = exoplanets[exoplanets.radius() > 0]
+ea = None
+exoplanets = None
+solarsys = None
+_import_exoatlas_silently()
 
 
 def list_planets(flat: bool = False, quiet: bool = True) -> list[str]:

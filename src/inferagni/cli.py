@@ -110,6 +110,14 @@ def update(gridname: str | None, force: bool):
     else:
         click.echo("Failed to update grid data.")
 
+    # download exoplanet data
+    from inferagni.planets import _import_exoatlas_silently
+    click.echo("Updating exoplanet data...")
+    if _import_exoatlas_silently():
+        click.echo("Exoplanet data updated successfully.")
+    else:
+        click.echo("Failed to update exoplanet data.")
+
 
 cli.add_command(update)
 
