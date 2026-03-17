@@ -61,6 +61,7 @@ class Grid:
         if not os.path.isdir(data_dir):
             print("    Grid data folder not found")
             print("    Please run 'inferagni update' to download the required data")
+            print("    Alternatively, run 'inferagni --help' to view available commands")
 
         # load data
         self._load_scalars(data_dir)  # load from CSVs

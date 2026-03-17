@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__version__ = "26.03.04"
+__version__ = "26.03.17"
 __uri__ = "https://github.com/nichollsh/InferAGNI"
 __author__ = "Harrison Nicholls"
 __email__ = "harrison.nicholls@ast.cam.ac.uk"

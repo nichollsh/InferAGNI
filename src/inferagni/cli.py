@@ -90,7 +90,7 @@ cli.add_command(system)
 @click.argument("gridname", nargs=1, default=None)
 @click.option("--force", is_flag=True, help="Force update even if not needed")
 def update(gridname: str | None, force: bool):
-    """Download required grid data"""
+    """Download required grid data. Uses the default grid if no name is specified."""
 
     from inferagni.data import check_grid_needs_update, download_grid
 
